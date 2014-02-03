@@ -1,29 +1,30 @@
 # Introduction
 
-Technologies based on public-key cryptography have the potential to provide a
-general solution for managing electronic identities for secure communication and
-authentication, but the problem of public-key distribution has prevented them
-from becoming universal[@wpNsaProofEncryption]. Current systems either
-suffer from single points of failure or are too cumbersome. Certificate
-authorities, which manage public keys for domains, can be completely compromised
-by a single breach[@EllisonSchneierPKI][@SchneierVerisignHacked]. Personal PGP keys are
+Public-key cryptography has the potential to provide a general solution for
+secure authentication and communication online. However, the difficulty of
+public-key distribution has prevented it from becoming
+universal[@wpNsaProofEncryption].  Current systems either have single points of
+failure or are too cumbersome for humans to use.  Certificate authorities, which
+manage public keys for domains, can be completely compromised by a single
+breach[@EllisonSchneierPKI][@SchneierVerisignHacked].  Personal PGP keys are
 decentralized, but expanding the web of trust is far too laborious and still
-suffers from social engineering attacks [@arsTechnicaGGreenwaldPGP]; ultimately, the
-problem is that public key certification not easy for humans to handle[@Johnny2008].
-The tradeoffs between these systems is expressed in Zooko's triangle[@ZookosTriangle],
-which claims that naming systems <!--has this term been established?--> can provide
-at most two of three of three properties: decentralization, human-readability,
-and security. Aaron Swartz proposed a system to achieve all three[@SwartzSquareZoooko], and Namecoin
-implements the same idea. Arguably, by embedding name assignments in a
-blockchain much like Bitcoin's, it successfully "squares" Zooko's triangle.
+suffers from social engineering attacks [@arsTechnicaGGreenwaldPGP], since it
+relies on unreadable fingerprints rather than human-meaningful
+names[@Johnny2008].  The tradeoff between these systems is expressed in Zooko's
+triangle[@ZookosTriangle], which claims that naming systems <!--has this term
+been established?--> can provide at most two of three of three properties:
+decentralization, human-readability, and security. Aaron Swartz proposed a
+system to embed name assignments in a blockchain much like
+Bitcoin's[@SwartzSquareZoooko], and Namecoin implements the same idea. Arguably,
+it successfully combines all three properties, "squaring" Zooko's triangle.
 However, it has a major weakness: an adversary with more hashing power than
-honest parties can arbitrarily take over names. Moreover, even when not
-compromised, it requires a massive amount of computation power, and requires
-each participant to store the entire history <!--unless they trust a third party-->.
-In this paper, we propose a new system that uses a distributed set of untrusted
-servers and verifiers, only one of which must be honest, to manage name 
-registrations securely and efficiently. We believe it could make public keys
-usable in a much wider range of applications.
+honest parties can arbitrarily take over names.  Moreover, even when not
+compromised, it requires a massive amount of computation power and requires
+each participant to store the entire set of data <!--unless they trust a third
+party-->.  In this paper, we propose a new system that uses a distributed set of
+untrusted servers and verifiers, only one of which must be honest, to manage
+name registrations securely and efficiently. We believe it could make public
+keys usable universally.
 
 <!-- todo: cite certificate transparency somewhere -->
 
