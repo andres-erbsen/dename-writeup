@@ -63,19 +63,39 @@ Each round consists of the following steps:
 
 
 To allow for efficient manipulation and verification of the set of name-identity
-mappings, we store them in a binary radix tree whose keys are hashes of the names and
-whose values are hashes of the identities. The tree is also a Merkle tree: each 
-leaf stores a hash of the (key, value) pair it represents, and each internal
-node stores the hash of its two children's hashes. Since every piece of data is
-hashed into the root in a defined manner, the root hash effectively specifies
-the entire tree. This allows for several efficient operations, assuming clients
-have securely verified the root hashed with all the servers:
+mappings, we store them in a binary radix tree whose dictionary keys[^1] are
+hashes of the names and whose values are hashes of the identities. The tree is
+also a Merkle tree: each leaf stores a hash of the (dictionary key, value) pair
+it represents, and each internal node stores the hash of its two children's
+hashes. Since every piece of data is hashed into the root in a defined manner,
+the root hash effectively specifies the entire tree. This allows for several
+efficient operations, assuming clients have securely verified the root hashed
+with all the servers:
  - Name lookups: A client can send a request to a single server with a name. The
    server responds with the associated identity along with a proof that the name
    is actually in the tree. The proof consists of the list of hashes stored in the
-   siblings of all the nodes along the path from the leaf to the root. To verify
-   the proof, the client first hashes together the 
+   siblings of all the nodes along the path from the leaf to the root (and an
+   indication of whether the siblings are to the left or the right of the path) --
+   the *Merkle hash path*. To verify the proof, the client first hashes together
+   the (dictionary key, value) pair (i.e. the hashes of the name and the identity).
+   This hash is then hashed together with the server-provided hash stored in the
+   sibling of the leaf, resulting in the hash of their parent. This is repeated
+   recursively, hashing in the rest of the siblings all the way up to the root. If
+   the resulting root hash matches, the client knows the identity is correct:
+   Assuming the hash is collision-resistant, the server cannot return any identity
+   not associated with the name in the original tree, since finding a Merkle hash
+   path that produces the correct root hash with an incorrect leaf hash is
+   intractable.
+ - Name absence proofs: If a requested name is not in the tree, the server can
+	 prove its absence by returning the name-identity pairs right before and
+   right after the missing name, as defined by the lexicographical order of the
+   dictionary keys, along with the associated Merkle hash pathes. The client has to
+   verify that both hash pathes result give the correct root hash and that there
+   are indeed no nodes in between: up to their common ancestor, the former only has
+   left siblings and the latter only has right siblings.
 
+[^1]: We use the term "dictionary keys" to avoid confusion with cryptographic keys,
+could be in the identities -- the dictionary values.]
 
 ## Verifiers, caches
 
