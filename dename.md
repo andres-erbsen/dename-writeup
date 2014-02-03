@@ -39,7 +39,7 @@ against the user intentionally revealing the secret key. Endpoint attacks
 We assume that the digital signature scheme (`ed25519`), hash (`sha256`), and
 authenticated encryption (`salsa20poly1305`) hold up to their security claims:
 unforgeability, collision resistance and `IND-CCA2`. The current implementation
-also uses `sha256` with constant-length input for key deriviation under the
+also uses `sha256` with constant-length input for key derivation under the
 assumption that it is a perfect entropy extractor.
 
 ## Conventions
