@@ -71,7 +71,8 @@ hashes. Since every piece of data is hashed into the root in a defined manner,
 the root hash effectively specifies the entire tree. This allows for several
 efficient operations, assuming clients have securely verified the root hashed
 with all the servers:
- - Name lookups: A client can send a request to a single server with a name. The
+
+ - **Name lookups**: A client can send a request to a single server with a name. The
    server responds with the associated identity along with a proof that the name
    is actually in the tree. The proof consists of the list of hashes stored in the
    siblings of all the nodes along the path from the leaf to the root (and an
@@ -86,7 +87,7 @@ with all the servers:
    not associated with the name in the original tree, since finding a Merkle hash
    path that produces the correct root hash with an incorrect leaf hash is
    intractable.
- - Name absence proofs: If a requested name is not in the tree, the server can
+ - **Name absence proofs**: If a requested name is not in the tree, the server can
 	 prove its absence by returning the name-identity pairs right before and
    right after the missing name, as defined by the lexicographical order of the
    dictionary keys, along with the associated Merkle hash pathes. The client has to
