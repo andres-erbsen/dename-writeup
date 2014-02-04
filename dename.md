@@ -52,29 +52,61 @@ expected to save all messages to nonvolatile storage before sending them.
 
 ## Main protocol
 
+The dename protocol is run between a fixed set of servers, each of which knows
+the addresses <!-- TODO: what kind of addresses? --> and public keys of all the
+other servers, its *peers*. Each server stores the entire set of name registrations and
+serves it to clients. To introduce a new name registration or update an existing
+one, a client contacts a single server of their choice, which becomes the
+*introducer* for the request. <!-- do we actually want to use that term? -->
+Servers continually accept requests from clients, synchronize the changes, and
+agree on updated sets of name registrations.
+
 ### Rounds
 
 In order to define a global ordering of requests, time is split into discrete
-rounds. During a round, servers receive requests and store them. When the round
-is closed for clients, each server reveals the requests it received to other
-servers. All requests in one round are ordered randomly. Requests that were
-received during different rounds are handled separately, the order is implicitly
-defined by the round numbers. When all requests in the last round have been
-handled, all servers sign and publish the new name-identity mapping.
+rounds. Each round goes through the following phases in each server:
 
-Each round consists of the following steps:
+- **Accept requests from clients.** The requests are checked for validity given
+  the server's current knowledge and stored locally if accepted. The server can
+  verify to the client that the request will be processed, but since there could be
+  conflicts with requests in the same round on other servers, the server cannot
+  guarantee that the request will go through.
+- **Commit to the requests.** Once the round is closed for clients, the server
+  broadcasts a *commitment* -- a signed hash of its set of requests. However, to
+  prevent peers (who might not have committed to their own requests yet)
+  from intentionally introducing conflicting requests, the requests themselves
+  are not sent yet.
+- **Wait for all the commitments and acknowledge them.** For each commitment
+  received, the server broadcasts a signed acknowledgement that it saw the
+  commitment.
+- **Wait for all acknowledgements for all commitments.** The server waits until
+  it sees that each peer has acknowledged each other server's requests -- a total of
+  $(N-1)^2$ incoming acknowledgements -- and makes sure that the
+  acknowledgements match the commitments it saw.
+- **Broadcast the requests.** Now that each peer has irreversibly committed to
+  its set of requests, the server can send out its own requests.
+- **Process the requests.** Once requests have come in from each peer, the
+  round's entire set of requests is known, and processed identically on each
+  server. To resolve conflicts (names that were assigned to multiple new identities
+  in the same round), a cryptographic psuedorandom number generator is seeded based
+  on the shared state and used to randomly rank the requests. Then, for each
+  name, the winning request is processed and stored.
+- **Publish the result.** Once the new set of name registrations has been
+  created, the server broadcasts a signed hash.
+- **Wait for all publishes.**
+- **Start serving the new state to clients.** Once every server has published an
+  identical set of name registrations, the state that is served to clients can
+  be atomically <!-- atomic on that server --> switched to the new one.
 
-- accept requests from clients
-- commit to the requests
-- wait for all the commitments and acknowledge them
-- wait for all acknowledgements for all commitments
-- process the requests
-- publish the result
-- wait for all publishes
-- start serving the new state to clients
+### Enhancements
+
+To spread out the network traffic, each server broadcasts requests it receives
+right away, but encrypted with a key that is freshly generated each round.
+Then, to give other servers the requests, the servers just broadcast the
+round key. In our implementation, a hash of the set of round keys is used to
+seed the PRNG in [Step: Process the requests].
 
 ## Name-tree representation
-
 
 To allow for efficient manipulation and verification of the set of name-identity
 mappings, we store them in a binary radix tree whose dictionary keys[^1] are
@@ -189,7 +221,7 @@ about bitcoin security-powerusage tradeoff
 - One can prove that they know the secret key.
   - if only the prover is online, use signatures
   - if only the verifier is online, use decryption
-- 
+-
 
 ## Public keys are inconvenient to manage
 
@@ -208,7 +240,7 @@ about bitcoin security-powerusage tradeoff
 ## Zooko's Triangle
 
 It has been conjectured that no system will be able to reference people in a way
-that is human-meaningful, secure, and without single points of failure. 
+that is human-meaningful, secure, and without single points of failure.
 
 ## Centralized systems
 
@@ -234,9 +266,9 @@ that is human-meaningful, secure, and without single points of failure.
 
  - Requests are ordered by the one who hashes the fastest and verified by all
    clients.
- 
+
  Problems:
- 
+
  - Client-side verification is expensive, no defined protocol for thin clients
  - 51% attack
  - No conventional accountability
