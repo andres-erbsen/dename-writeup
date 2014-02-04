@@ -1,0 +1,78 @@
+
+
+
+# Citations https://www.schneier.com/paper-pki-ft.txt schneier on CA-s
+https://www.schneier.com/blog/archives/2012/02/verisign_hacked.html schneier on
+verisign hack http://www.certificate-transparency.org/what-is-ct certificate
+transparency intro that complains about CA accountability
+http://arstechnica.com/security/2013/06/guardian-reporter-delayed-e-mailing-nsa-source-because-crypto-is-a-pain/
+http://www.washingtonpost.com/blogs/wonkblog/wp/2013/06/14/nsa-proof-encryption-exists-why-doesnt-anyone-use-it/
+http://www.cs.berkeley.edu/~tygar/papers/Why_Johnny_Cant_Encrypt/USENIX.pdf
+PGP5 http://www.net.t-labs.tu-berlin.de/teaching/ss08/IS_seminar/PDF/C.1.pdf
+PGP9 http://groups.csail.mit.edu/uid/projects/secure-email/soups05.pdf key
+continuity paper; includes numbers about PGP usability
+http://letstalkbitcoin.com/is-bitcoin-overpaying-for-false-security/ blog post
+about bitcoin security-powerusage tradeoff
+
+
+# Motivation
+
+## Public keys are the best representation of identity
+
+- Identity is well-defined: the public key points to the one who knows the
+  corresponding secret key
+- One can prove that they know the secret key.
+  - if only the prover is online, use signatures
+  - if only the verifier is online, use decryption
+-
+
+## Public keys are inconvenient to manage
+
+- Public key distribution is hard
+- The need to "verify the fingerprint" is not intuitive; lack of usability leads
+  to lack of use and thus insecurity
+- wide social engineering attack surface
+
+## Name-Identity mapping would help
+
+- The concept of "usernames" is already widespread
+- User interfaces would not need to change to allow for better security
+
+# Prior work
+
+## Zooko's Triangle
+
+It has been conjectured that no system will be able to reference people in a way
+that is human-meaningful, secure, and without single points of failure.
+
+## Centralized systems
+
+### Certificate Authorities
+
+- A name can be associated with multiple keys, even without the "owner" knowing.
+  Certificate Transparency fixes this.
+- Failure of *any* CA will result in arbitrary changes. Both issues are already
+  being abused by governments.
+
+## Convergence;
+
+- Only for publicly accessible servers, no obvious extension to users
+- Downtime would break everything
+
+### DNS TXT records
+
+- No accountability -- can return whatever they want in response to queries
+- Centralized; single point of failure. This is already being abused by
+  governments.
+
+## Swartz's, Namecoin
+
+ - Requests are ordered by the one who hashes the fastest and verified by all
+   clients.
+
+ Problems:
+
+ - Client-side verification is expensive, no defined protocol for thin clients
+ - 51% attack
+ - No conventional accountability
+ - Operating costs and questionable incentive schemes

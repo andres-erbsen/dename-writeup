@@ -20,7 +20,7 @@ it successfully combines all three properties, "squaring" Zooko's triangle.
 However, it has a major weakness: an adversary with more hashing power than
 honest parties can arbitrarily take over names.  Moreover, even when not
 compromised, it requires a massive amount of computation power and requires
-each participant to store the entire set of data <!--unless they trust a third
+each participant to store the entire set of data<!--unless they trust a third
 party-->.  In this paper, we propose a new system that uses a distributed set of
 untrusted servers and verifiers, only one of which must be honest, to manage
 name registrations securely and efficiently. We believe it could make public
@@ -115,11 +115,11 @@ also a Merkle tree: each leaf stores a hash of the (dictionary key, value) pair
 it represents, and each internal node stores the hash of its two children's
 hashes. Since every piece of data is hashed into the root in a defined manner,
 the root hash effectively specifies the entire tree. This allows for several
-efficient operations, assuming clients have securely verified the root hashed
+efficient operations, assuming clients have securely verified the root hashes
 with all the servers:
 
- - **Name lookups**: A client can send a request to a single server with a name.
-   The server responds with the associated identity along with a proof that the
+**Name lookups**: A client can send a request to a single server with a name.
+The server responds with the associated identity along with a proof that the
 name is actually in the tree. The proof consists of the list of hashes stored in
 the siblings of all the nodes along the path from the leaf to the root (and an
 indication of whether the siblings are to the left or the right of the path) --
@@ -133,8 +133,9 @@ Assuming the hash is collision-resistant, the server cannot return any identity
 not associated with the name in the original tree, since finding a Merkle hash
 path that produces the correct root hash with an incorrect leaf hash is
 intractable.
- - **Name absence proofs**: If a requested name is not in the tree, the server
-   can prove its absence by returning the name-identity pairs right before and
+
+**Name absence proofs**: If a requested name is not in the tree, the server
+can prove its absence by returning the name-identity pairs right before and
 right after the missing name, as defined by the lexicographical order of the
 dictionary keys, along with the associated Merkle hash pathes. The client has to
 verify that both hash pathes result give the correct root hash and that there
@@ -149,25 +150,21 @@ keys, could be in the identities -- the dictionary values.
 
 ## What we achieve
 
-### Correctness
-
-The state where no names assigned is correct. A state that is reached from a
-correct state by a valid transfer or expiration of a name is also correct.  A
-name can be transfered on the consensus of the new owner and the previous owner
-(if present), represented by a tuple (name, new identity) digitally signed by
-both of them. A name expires (is assigned to point to nobody) if it has not been
-transferred in some globally fixed number of consequtive rounds. Transferring
-names to yourself is allowed.
+**Correctness**: The state where no names assigned is correct. A state that is
+reached from a correct state by a valid transfer or expiration of a name is also
+correct.  A name can be transfered on the consensus of the new owner and the
+previous owner (if present), represented by a tuple (name, new identity)
+digitally signed by both of them. A name expires (is assigned to point to
+nobody) if it has not been transferred in some globally fixed number of
+consequtive rounds. Transferring names to yourself is allowed.
 
 If a client accepts a name-key mapping as correct, it either is correct or *all*
-`dename` servers the client relies on are faulty. As anybody is welcome to run a
+servers the client relies on are faulty. As anybody is welcome to run a
 verification server, we think the latter is easily avoidable.
 
-### Fairness
-
-We cannot force the servers to treats clients equally, but we can hold them
-accountable. Specifically, if a server accepts a name transfer request from a
-client, either this request gets processed or the client has proof of the
+**Fairness**: We cannot force the servers to treats clients equally, but we can
+hold them accountable. Specifically, if a server accepts a name transfer request
+from a client, either this request gets processed or the client has proof of the
 server's dishonest behavior. If a server does not accept a name transfer
 request, the client can try again with another introduction server.
 
@@ -177,102 +174,19 @@ are ignored. Furthermore, servers cannot see the requests other servers received
 before having agreed to process them. This prevents them from contesting
 registrations based on the requested name.
 
-### Freshness
+**Freshness**: Correctness is independent of wall clock time, but usually
+clients need to access the latest correct state, not just any one. Clients that
+have access to accurate clocks can be assured that either the state they see is
+one of the two most recent ones or *all* servers they rely on for freshness are
+faulty.
 
-Correctness is independent of wall clock time, but usually clients need to
-access the latest correct state, not just any one. Clients that have access to
-accurate clocks can be assured that either the state they see is one of the two
-most recent ones or *all* servers they rely on for freshness are faulty.
-
-### Resilience
-
-Names can be resolved to identities as long as a copy of the mapping is
-available. Names can be transferred or expire only when all introduction servers
-are functioning properly. Furthermore, clients that require additional verifiers
-to have vetted the name mapping also need these servers to be up.
-
+**Resilience**: Names can be resolved to identities as long as a copy of the
+mapping is available. Names can be transferred or expire only when all
+introduction servers are functioning properly. Furthermore, clients that require
+additional verifiers to have vetted the name mapping also need these servers to
+be up.
 
 # Further work
 
 ## Rate-limiting and anonymity
-
-
-
-# Citations https://www.schneier.com/paper-pki-ft.txt schneier on CA-s
-https://www.schneier.com/blog/archives/2012/02/verisign_hacked.html schneier on
-verisign hack http://www.certificate-transparency.org/what-is-ct certificate
-transparency intro that complains about CA accountability
-http://arstechnica.com/security/2013/06/guardian-reporter-delayed-e-mailing-nsa-source-because-crypto-is-a-pain/
-http://www.washingtonpost.com/blogs/wonkblog/wp/2013/06/14/nsa-proof-encryption-exists-why-doesnt-anyone-use-it/
-http://www.cs.berkeley.edu/~tygar/papers/Why_Johnny_Cant_Encrypt/USENIX.pdf
-PGP5 http://www.net.t-labs.tu-berlin.de/teaching/ss08/IS_seminar/PDF/C.1.pdf
-PGP9 http://groups.csail.mit.edu/uid/projects/secure-email/soups05.pdf key
-continuity paper; includes numbers about PGP usability
-http://letstalkbitcoin.com/is-bitcoin-overpaying-for-false-security/ blog post
-about bitcoin security-powerusage tradeoff
-
-
-# Motivation
-
-## Public keys are the best representation of identity
-
-- Identity is well-defined: the public key points to the one who knows the
-  corresponding secret key
-- One can prove that they know the secret key.
-  - if only the prover is online, use signatures
-  - if only the verifier is online, use decryption
--
-
-## Public keys are inconvenient to manage
-
-- Public key distribution is hard
-- The need to "verify the fingerprint" is not intuitive; lack of usability leads
-  to lack of use and thus insecurity
-- wide social engineering attack surface
-
-## Name-Identity mapping would help
-
-- The concept of "usernames" is already widespread
-- User interfaces would not need to change to allow for better security
-
-# Prior work
-
-## Zooko's Triangle
-
-It has been conjectured that no system will be able to reference people in a way
-that is human-meaningful, secure, and without single points of failure.
-
-## Centralized systems
-
-### Certificate Authorities
-
-- A name can be associated with multiple keys, even without the "owner" knowing.
-  Certificate Transparency fixes this.
-- Failure of *any* CA will result in arbitrary changes. Both issues are already
-  being abused by governments.
-
-## Convergence;
-
-- Only for publicly accessible servers, no obvious extension to users
-- Downtime would break everything
-
-### DNS TXT records
-
-- No accountability -- can return whatever they want in response to queries
-- Centralized; single point of failure. This is already being abused by
-  governments.
-
-## Swartz's, Namecoin
-
- - Requests are ordered by the one who hashes the fastest and verified by all
-   clients.
-
- Problems:
-
- - Client-side verification is expensive, no defined protocol for thin clients
- - 51% attack
- - No conventional accountability
- - Operating costs and questionable incentive schemes
-
-
 
