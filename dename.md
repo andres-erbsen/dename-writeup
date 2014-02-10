@@ -143,7 +143,7 @@ are indeed no nodes in between: up to their common ancestor, the former only has
 left siblings and the latter only has right siblings.
 
 [^1]: We use the term "dictionary keys" to avoid confusion with cryptographic
-keys, could be in the identities -- the dictionary values.
+keys, which could be in the identities -- the dictionary values.
 
 ## Verifiers, caches
 
