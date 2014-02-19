@@ -1,4 +1,4 @@
-# Introduction
+# Background
 
 Public-key cryptography has the potential to provide a general solution for
 secure authentication and communication online. However, the difficulty of
@@ -7,29 +7,49 @@ universal[@wpNsaProofEncryption].  Current systems either have single points of
 failure or are too cumbersome for humans to use.  Certificate authorities, which
 manage public keys for domains, can be completely compromised by a single
 breach[@EllisonSchneierPKI][@SchneierVerisignHacked].  Personal PGP keys are
-decentralized, but expanding the web of trust is far too laborious and still
-suffers from social engineering attacks [@arsTechnicaGGreenwaldPGP], since it
-relies on unreadable fingerprints rather than human-meaningful
-names[@Johnny2008].  The tradeoff between these systems is expressed in Zooko's
-triangle[@ZookosTriangle], which claims that naming systems <!--has this term
-been established?--> can provide at most two of three of three properties:
-decentralization, human-readability, and security. Aaron Swartz proposed a
-system to embed name assignments in a blockchain much like
+decentralized, but using them correctly is cumbersome and counterintuitive
+[@arsTechnicaGGreenwaldPGP], since it relies on unreadable fingerprints rather
+than human-meaningful names[@Johnny2008].  The tradeoff between these systems is
+expressed in Zooko's triangle[@ZookosTriangle], which claims that naming systems
+<!--has this term been established?--> can provide at most two of three of three
+properties: decentralization, human-readability, and security. Aaron Swartz
+proposed a system to embed name assignments in a blockchain much like
 Bitcoin's[@SwartzSquareZoooko], and Namecoin implements the same idea. Arguably,
 it successfully combines all three properties, "squaring" Zooko's triangle.
-However, it has a major weakness: an adversary with more hashing power than
-honest parties can arbitrarily take over names.  Moreover, even when not
-compromised, it requires a massive amount of computation power and requires
-each participant to store the entire set of data<!--unless they trust a third
-party-->.  In this paper, we propose a new system that uses a distributed set of
-untrusted servers and verifiers, only one of which must be honest, to manage
-name registrations securely and efficiently. We believe it could make public
-keys usable universally.
+However, it has major weaknesses: an adversary with more hashing power than
+honest parties can arbitrarily take over names. Moreover, even when not
+compromised, it requires a massive amount of computation power and does not
+securely support lightweight clients.
+
 <!-- todo: cite certificate transparency somewhere -->
 
-# Protocol
+# Introduction
 
-## Assumptions
+In this paper, we propose a new system that uses a
+distributed set of untrusted servers and verifiers, only one of which must be
+honest, to securely and efficiently assign human-readable names to public keys.
+We describe a protocol using which a client with a reasonably accurate clock can
+securely look the identity that corresponds to a name by talking to only one
+server or a cache. We believe it could make public keys usable universally.
+
+In short, for a name assignment to be accepted by a client, *all* servers and
+additional verifiers the client relies on have to approve it using a digital
+signature. This construction is secure under the weak assumption that one
+of these parties is honest, but it leaves us with two very important questions:
+how to make sure that everybody agrees on what name assignments to make, and how
+to be resilient to server failures. We choose to postpone assigning names until
+all the servers are functional and allow clients to resolve names to identities
+when $f$ servers are down under the assumption that that at least $f+1$ servers
+are honest for any $f>0$ of their choice.
+
+As being able to transfer names to other keys and to have unused names expire is
+in our opinion crucial for adoption of a system like ours, we also need to
+ensure that when a client looks up what a name has been approved to point to, it
+does not get just any result but the most recent one. These three issues are the
+crux of this paper. 
+
+
+# General Assumptions
 
 We assume that the user runs a correct copy of the client software and does
 not go out of their way to break it -- for example, we are not trying to protect
@@ -190,3 +210,10 @@ be up.
 
 ## Rate-limiting and anonymity
 
+
+# Addendum: the meaning of a name
+
+- ownership of a domain?
+- legal?
+- power to do X?
+- solutions for online entities
