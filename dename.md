@@ -96,27 +96,26 @@ rounds. Each round goes through the following phases in each server:
   prevent peers (who might not have committed to their own requests yet)
   from intentionally introducing conflicting requests, the requests themselves
   are not sent yet.
-- **Wait for all the commitments and acknowledge them.** For each commitment
-  received, the server broadcasts a signed acknowledgement that it saw the
-  commitment.
+- **Wait for all the commitments.**
+- **Acknowledge the commitments** -- The server computes the hash of the commitments,
+  signs it and sends it to all other servers.
 - **Wait for all acknowledgements for all commitments.** The server waits until
-  it sees that each peer has acknowledged each other server's requests -- a total of
-  $(N-1)^2$ incoming acknowledgements -- and makes sure that the
-  acknowledgements match the commitments it saw.
+  it sees that each peer has acknowledged the commitments and checks that the
+  hashes match.  This ensures that all of them saw the same same commitments
 - **Broadcast the requests.** Now that each peer has irreversibly committed to
   its set of requests, the server can send out its own requests.
 - **Process the requests.** Once requests have come in from each peer, the
   round's entire set of requests is known, and processed identically on each
-  server. To resolve conflicts (names that were assigned to multiple new identities
-  in the same round), a cryptographic psuedorandom number generator is seeded based
-  on the shared state and used to randomly rank the requests. Then, for each
-  name, the winning request is processed and stored.
+server. To resolve conflicts (names that were assigned to multiple new
+identities in the same round), a cryptographic psuedorandom number generator is
+seeded based on the shared state and used to randomly rank the requests. Then,
+for each name, the winning request is processed and stored.
 - **Publish the result.** Once the new set of name registrations has been
   created, the server broadcasts a signed hash.
 - **Wait for all publishes.**
 - **Start serving the new state to clients.** Once every server has published an
   identical set of name registrations, the state that is served to clients can
-  be atomically <!-- atomic on that server --> switched to the new one.
+be atomically <!-- atomic on that server --> switched to the new one.
 
 ### Enhancements
 
