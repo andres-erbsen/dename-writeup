@@ -1,3 +1,5 @@
+\newcommand\noimpl{\emph{(currently not implemented)}}
+
 # Background
 
 Public-key cryptography has the potential to provide a general solution for
@@ -47,7 +49,9 @@ As being able to transfer names to new identities and to have unused names
 expire is in our opinion crucial for adoption of a system like ours, we also
 need to ensure that when a client looks up what a name has been approved to
 point to, it does not get just any result but the most recent one. These three
-issues are the crux of this paper. 
+issues of consistency, resilience and freshness are the crux of this paper. Up
+to the extent to which this is feasible, also try to ensure that the servers
+have no choice but to treat all clients equally (fairness).
 
 
 # General Assumptions
@@ -73,7 +77,7 @@ expected to save all messages to nonvolatile storage before sending them.
 
 ## Main protocol
 
-The dename protocol is run between a fixed set of servers, each of which knows
+The dename consensus protocol is run between a fixed set of servers, each of which knows
 the addresses <!-- TODO: what kind of addresses? --> and public keys of all the
 other servers, its *peers*. Each server stores the entire set of name registrations and
 serves it to clients. To introduce a new name registration or update an existing
@@ -126,6 +130,30 @@ Then, to give other servers the requests, the servers just broadcast the
 round key. In our implementation, a hash of the set of round keys is used to
 seed the PRNG in [Step: Process the requests].
 
+## Failures and Freshness
+
+We acknowledge that even honest servers may fail and propose a mechanism for
+maintaining correctness in presence of stopping failures. In the main protocol,
+a server should save all results on nondeterministic operations to nonvolatile
+storage before acting on them.  Currently this includes sent and received
+messages and random number generation.  To recover from a stopping failure, a
+server will assume the state that it was in before sending out the last publish
+message it has stored and continue from there, using stored results for
+nondeterministic actions where available.  Additionally, it will notify other
+servers of the failure and they will resend to it all messages since (and
+including) the last publish message sent to it. As no correct server will issue
+a publish message if it has not seen all the publish messages for the previous
+round, this procedure will result in the failed server receiving all the
+messages it may have lost due to the downtime and resuming normal operation. We
+are aware that this level of granularity does not yield optimal recovery times,
+but as as we expect failures to be very infrequent compared to all other
+operations, we think that the simplicity of this approach outweighs the
+potential downsides.
+
+Requiring assertions of freshness of the name assignments is in its strongest
+form directly contradictory to allowing other servers to continue handling name
+lookups in presence of stopping failures. \TODO
+
 ## Name-tree representation
 
 To allow for efficient manipulation and verification of the set of name-identity
@@ -160,10 +188,24 @@ right after the missing name, as defined by the lexicographical order of the
 dictionary keys, along with the associated Merkle hash pathes. The client has to
 verify that both hash pathes result give the correct root hash and that there
 are indeed no nodes in between: up to their common ancestor, the former only has
-left siblings and the latter only has right siblings.
+left siblings and the latter only has right siblings. \noimpl
+
+**Incremental correctness proofs**: The goal is to efficiently convince a
+verifier that the current root hash represents a correct tree. As we expect it
+to often be the case that the verifier already knows that the root hash of a
+recent correct tree. Making use of that fact, it is possible to prove the
+correctness of the current tree by only communicating the name assignments that
+have changed, the transfer requests that caused them to change, and the
+respective old and new Merkle paths. The verifier can use this information to
+compute the new root hash while only including changes that are backed up by
+valid name transfer requests, thus validating the new root hash. The parts that
+did not change do not need to be inspected. \noimpl
 
 [^1]: We use the term "dictionary keys" to avoid confusion with cryptographic
 keys, which could be in the identities -- the dictionary values.
+
+## Looking up names
+
 
 ## Verifiers, caches
 
@@ -171,18 +213,30 @@ keys, which could be in the identities -- the dictionary values.
 ## What we achieve
 
 **Correctness**: The state where no names assigned is correct. A state that is
-reached from a correct state by a valid transfer or expiration of a name is also
+reached from a correct state by including a valid transfer or expiration of a name is also
 correct.  A name can be transfered on the consensus of the new owner and the
 previous owner (if present), represented by a tuple (name, new identity)
 digitally signed by both of them. A name expires (is assigned to point to
 nobody) if it has not been transferred in some globally fixed number of
-consequtive rounds. Transferring names to yourself is allowed.
+consequtive rounds. Transferring names to oneself is allowed.
 
 If a client accepts a name-key mapping as correct, it either is correct or *all*
 servers the client relies on are faulty. As anybody is welcome to run a
 verification server, we think the latter is easily avoidable.
 
-**Fairness**: We cannot force the servers to treats clients equally, but we can
+**Freshness**: Correctness is independent of wall clock time, but usually
+clients need to access the latest correct state, not just any one. Clients that
+have access to accurate clocks can be assured that either the state they see is
+one of the two most recent ones or *all* servers they rely on for freshness are
+faulty.
+
+**Resilience**: Names can be correctly resolved to identities as long as a copy
+of the mapping is available. Names can be transferred or expire only when all
+introduction servers are functioning properly. Furthermore, clients that require
+additional verifiers to have vetted the name mapping also need these servers to
+be up.
+
+**Fairness**: We cannot force the servers to treat clients equally, but we can
 hold them accountable. Specifically, if a server accepts a name transfer request
 from a client, either this request gets processed or the client has proof of the
 server's dishonest behavior. If a server does not accept a name transfer
@@ -194,21 +248,9 @@ are ignored. Furthermore, servers cannot see the requests other servers received
 before having agreed to process them. This prevents them from contesting
 registrations based on the requested name.
 
-**Freshness**: Correctness is independent of wall clock time, but usually
-clients need to access the latest correct state, not just any one. Clients that
-have access to accurate clocks can be assured that either the state they see is
-one of the two most recent ones or *all* servers they rely on for freshness are
-faulty.
-
-**Resilience**: Names can be resolved to identities as long as a copy of the
-mapping is available. Names can be transferred or expire only when all
-introduction servers are functioning properly. Furthermore, clients that require
-additional verifiers to have vetted the name mapping also need these servers to
-be up.
-
 # Further work
 
-## Rate-limiting and anonymity
+## Rate-limiting
 
 
 # Addendum: the meaning of a name
