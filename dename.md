@@ -1,13 +1,13 @@
 # Background
 
 Public-key cryptography has the potential to provide a general solution for
-secure authentication and communication online. However, the difficulty of
+secure online communication. However, the difficulty of
 public-key distribution has prevented it from becoming
 universal[@wpNsaProofEncryption].  Current systems either have single points of
 failure or are too cumbersome for humans to use.  Certificate authorities, which
 manage public keys for domains, can be completely compromised by a single
 breach[@EllisonSchneierPKI][@SchneierVerisignHacked].  Personal PGP keys are
-decentralized, but using them correctly is cumbersome and counterintuitive
+decentralized, but using them correctly is counterintuitive and tedious
 [@arsTechnicaGGreenwaldPGP], since it relies on unreadable fingerprints rather
 than human-meaningful names[@Johnny2008].  The tradeoff between these systems is
 expressed in Zooko's triangle[@ZookosTriangle], which claims that naming systems
@@ -27,9 +27,10 @@ securely support lightweight clients.
 
 In this paper, we propose a new system that uses a
 distributed set of untrusted servers and verifiers, only one of which must be
-honest, to securely and efficiently assign human-readable names to public keys.
+honest, to securely and efficiently assign human-readable names to public keys
+or any other representations of identity.
 We describe a protocol using which a client with a reasonably accurate clock can
-securely look the identity that corresponds to a name by talking to only one
+securely look up the identity that corresponds to a name by talking to only one
 server or a cache. We believe it could make public keys usable universally.
 
 In short, for a name assignment to be accepted by a client, *all* servers and
@@ -40,13 +41,13 @@ how to make sure that everybody agrees on what name assignments to make, and how
 to be resilient to server failures. We choose to postpone assigning names until
 all the servers are functional and allow clients to resolve names to identities
 when $f$ servers are down under the assumption that that at least $f+1$ servers
-are honest for any $f>0$ of their choice.
+are honest for any $f \geq 0$ of their choice.
 
-As being able to transfer names to other keys and to have unused names expire is
-in our opinion crucial for adoption of a system like ours, we also need to
-ensure that when a client looks up what a name has been approved to point to, it
-does not get just any result but the most recent one. These three issues are the
-crux of this paper. 
+As being able to transfer names to new identities and to have unused names
+expire is in our opinion crucial for adoption of a system like ours, we also
+need to ensure that when a client looks up what a name has been approved to
+point to, it does not get just any result but the most recent one. These three
+issues are the crux of this paper. 
 
 
 # General Assumptions
