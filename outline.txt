@@ -1,0 +1,35 @@
+
+# Introduction
+- Wide variety of problems in crypto fall under one bucket
+- "Naming system": a system that associates names with cryptographic identities, etc
+- Examples: CA, PGP.
+- We are proposing a unified system
+- Needs to solve problems / have properties: No central points of failure, practicality (i.e.
+  human-readability), and cryptographic security
+- Zooko's Triangle
+
+# Overview
+- Set of servers in different people's hands collectively maintaining set of name registrations
+- Clients talk to one or more servers to register names
+- Servers run a consensus protocol to agree on new registrations
+- Clients look up names, and are guaranteed that other clients see the same results as long as at least one server is correct
+
+# Related work
+- Namecoin, yay. Except "bound to use enormous amounts of hashing power to stay secure, and even then there remains the risk of 51% of the power falling into bad hands." 
+
+# Consensus protocol
+
+## Verified mutual broadcast
+
+# Merkle tree
+
+# Fault tolerance
+
+# Use cases
+
+# Implementation
+
+# Further work
+## Verifiers
+## Rate-limiting
+

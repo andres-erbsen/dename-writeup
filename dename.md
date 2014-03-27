@@ -1,39 +1,30 @@
 \newcommand\noimpl{\emph{(currently not implemented)}}
+\newcommand\TODO{\emph{[TODO]}}
+\newcommand\dename{\textsc{[Dename]}}
 
-# Background
-
-Public-key cryptography has the potential to provide a general solution for
-secure online communication. However, the difficulty of
-public-key distribution has prevented it from becoming
-universal[@wpNsaProofEncryption].  Current systems either have single points of
-failure or are too cumbersome for humans to use.  Certificate authorities, which
-manage public keys for domains, can be completely compromised by a single
-breach[@EllisonSchneierPKI][@SchneierVerisignHacked].  Personal PGP keys are
-decentralized, but using them correctly is counterintuitive and tedious
-[@arsTechnicaGGreenwaldPGP], since it relies on unreadable fingerprints rather
-than human-meaningful names[@Johnny2008].  The tradeoff between these systems is
-expressed in Zooko's triangle[@ZookosTriangle], which claims that naming systems
-<!--has this term been established?--> can provide at most two of three of three
-properties: decentralization, human-readability, and security. Aaron Swartz
-proposed a system to embed name assignments in a blockchain much like
-Bitcoin's[@SwartzSquareZoooko], and Namecoin implements the same idea. Arguably,
-it successfully combines all three properties, "squaring" Zooko's triangle.
-However, it has major weaknesses: an adversary with more hashing power than
-honest parties can arbitrarily take over names. Moreover, even when not
-compromised, it requires a massive amount of computation power and does not
-securely support lightweight clients.
-
-<!-- todo: cite certificate transparency somewhere -->
 
 # Introduction
 
-In this paper, we propose a new system that uses a
-distributed set of untrusted servers and verifiers, only one of which must be
-honest, to securely and efficiently assign human-readable names to public keys
-or any other representations of identity.
-We describe a protocol using which a client with a reasonably accurate clock can
-securely look up the identity that corresponds to a name by talking to only one
-server or a cache. We believe it could make public keys usable universally.
+An important problem in public-key cryptography is the distribution of public
+keys. Systems such as certificate authorities or the PGP web of trust provide
+solutions for particular uses, acting as "naming systems" which associate
+identifiers (domains or key fingerprints) with public keys. However, they suffer
+from limitations in security and usability: certificate authorities can be
+completely compromised by a single
+breach[@EllisonSchneierPKI][@SchneierVerisignHacked], and PGP keys are
+counterintuitive and tedious [@arsTechnicaGGreenwaldPGP], since they rely on
+unreadable fingerprints. In this paper, we present \dename, a distributed
+general-purpose naming system that provides secure, human-meaningful names
+without single points of failure, "squaring" Zooko's triangle[@ZookosTriangle].
+\dename runs on a fixed set of untrusted servers and verifiers which
+collectively maintain a global mapping from names to public keys (or other
+another representation of identity), with the guarantee that all clients see a
+consistent view of the names as long as at least one server or verifier is
+honest. 
+
+# Overview
+
+
 
 In short, for a name assignment to be accepted by a client, *all* servers and
 additional verifiers the client relies on have to approve it using a digital
@@ -53,8 +44,10 @@ issues of consistency, resilience and freshness are the crux of this paper. Up
 to the extent to which this is feasible, also try to ensure that the servers
 have no choice but to treat all clients equally (fairness).
 
+# Related work
 
-# General Assumptions
+
+## General Assumptions
 
 We assume that the user runs a correct copy of the client software and does
 not go out of their way to break it -- for example, we are not trying to protect
@@ -102,7 +95,7 @@ rounds. Each round goes through the following phases in each server:
   from intentionally introducing conflicting requests, the requests themselves
   are not sent yet.
 - **Wait for all the commitments.**
-- **Acknowledge the commitments** -- The server computes the hash of the commitments,
+- **Acknowledge the commitments.** The server computes the hash of the commitments,
   signs it and sends it to all other servers.
 - **Wait for all acknowledgements for all commitments.** The server waits until
   it sees that each peer has acknowledged the commitments and checks that the
@@ -156,15 +149,15 @@ lookups in presence of stopping failures. \TODO
 
 ## Name-tree representation
 
-To allow for efficient manipulation and verification of the set of name-identity
-mappings, we store them in a binary radix tree whose dictionary keys[^1] are
-hashes of the names and whose values are hashes of the identities. The tree is
-also a Merkle tree: each leaf stores a hash of the (dictionary key, value) pair
-it represents, and each internal node stores the hash of its two children's
-hashes. Since every piece of data is hashed into the root in a defined manner,
-the root hash effectively specifies the entire tree. This allows for several
-efficient operations, assuming clients have securely verified the root hashes
-with all the servers:
+To allow for efficient manipulation and verification of the set of
+name-identity mappings, we store them in a binary radix tree whose dictionary
+keys[^1] are hashes of the names and whose values are hashes of the identities.
+The tree is also a Merkle tree <!-- citation here-->: each leaf stores a hash
+of the (dictionary key, value) pair it represents, and each internal node
+stores the hash of its two children's hashes. Since every piece of data is
+hashed into the root in a defined manner, the root hash effectively specifies
+the entire tree. This allows for several efficient operations, assuming clients
+have securely verified the root hashes with all the servers:
 
 **Name lookups**: A client can send a request to a single server with a name.
 The server responds with the associated identity along with a proof that the
@@ -190,19 +183,18 @@ verify that both hash pathes result give the correct root hash and that there
 are indeed no nodes in between: up to their common ancestor, the former only has
 left siblings and the latter only has right siblings. \noimpl
 
-**Incremental correctness proofs**: The goal is to efficiently convince a
-verifier that the current root hash represents a correct tree. As we expect it
-to often be the case that the verifier already knows that the root hash of a
-recent correct tree. Making use of that fact, it is possible to prove the
-correctness of the current tree by only communicating the name assignments that
-have changed, the transfer requests that caused them to change, and the
-respective old and new Merkle paths. The verifier can use this information to
-compute the new root hash while only including changes that are backed up by
-valid name transfer requests, thus validating the new root hash. The parts that
-did not change do not need to be inspected. \noimpl
+**Incremental correctness proofs**: A server must be able to efficiently prove
+to a verifier that the current root hash represents a correct tree.  If a
+verifier has already verified a previous root hash, the server only has to send
+a "tree diff" between the two versions containing the following information: the
+name assignments that have changed, the transfer requests that caused them to
+change, and the respective old and new Merkle paths. The verifier can check that
+all the requests are valid and use them to compute the new root hash.  The tree
+nodes that did not change do not need to be inspected. \noimpl
 
-[^1]: We use the term "dictionary keys" to avoid confusion with cryptographic
-keys, which could be in the identities -- the dictionary values.
+[^1]: We use the term "dictionary keys" to avoid confusion with the
+cryptographic keys that are part of the identities (i.e. the dictionary
+values).
 
 ## Looking up names
 
