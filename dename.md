@@ -50,6 +50,33 @@ as a side effect, enables efficient coherent caching of lookup results.
 
 # Maintaining consensus
 
+\begin{figure}
+\begin{msc}
+msc {
+  hscale = "0.65";
+
+  a,b,c;
+
+  b=>c [ label = "sigB(msgB)" ] ;
+  b=>a [ label = "sigB(msgB)" ] ;
+  a=>b [ label = "sigA(msgA)" ] ;
+  a=>c [ label = "sigA(msgA)" ] ;
+  c=>b [ label = "sigC(msgC)" ] ;
+  c=>a [ label = "sigC(msgC)" ] ;
+  ---  [ label = "Commitments done." ];
+  b=>c [ label = "sigB(msgA, msgB, msgC)" ] ;
+  b=>a [ label = "sigB(msgA, msgB, msgC)" ] ;
+  a=>b [ label = "sigA(msgA, msgB, msgC)" ] ;
+  a=>c [ label = "sigA(msgA, msgB, msgC)" ] ;
+  c=>b [ label = "sigC(msgA, msgB, msgC)" ] ;
+  c=>a [ label = "sigC(msgA, msgB, msgC)" ] ;
+  ---  [ label = "Verify that all messages match." ];
+}
+\end{msc}
+\caption{Verified broadcast}
+\label{bcast}
+\end{figure}
+
 Changes to the user directory happen in discrete rounds, that is, every once in
 a while servers propose changes and apply them in lockstep. We use a verified
 broadcast primitive (described below) to ensure that all servers receive learn
@@ -142,6 +169,47 @@ requests to other servers before having received hashes from them and reveals
 the encryption key to reveal the requests.
 The final protocol is displayed in figure \ref{consensusProtocol}.
 
+\begin{figure}
+\begin{msc}
+msc {
+  hscale = "0.65";
+
+  a,b,c;
+
+  b=>c [ label = "sigB(h(rqsB)), enc(rqsB)" ] ;
+  b=>a [ label = "sigB(h(rqsB)), enc(rqsB)" ] ;
+  a=>b [ label = "sigA(h(rqsA)), enc(rqsA)" ] ;
+  a=>c [ label = "sigA(h(rqsA)), enc(rqsA)" ] ;
+  c=>b [ label = "sigC(h(rqsC)), enc(rqsC)" ] ;
+  c=>a [ label = "sigC(h(rqsC)), enc(rqsC)" ] ;
+  ---  [ label = "Commitments done." ];
+  b=>c [ label = "sigB(h(hA, hB, hC))" ] ;
+  b=>a [ label = "sigB(h(hA, hB, hC))" ] ;
+  a=>b [ label = "sigA(h(hA, hB, hC))" ] ;
+  a=>c [ label = "sigA(h(hA, hB, hC))" ] ;
+  c=>b [ label = "sigC(h(hA, hB, hC))" ] ;
+  c=>a [ label = "sigC(h(hA, hB, hC))" ] ;
+  ---  [ label = "Verify that hX is unique forall X." ];
+  b=>c [ label = "keyB" ] ;
+  b=>a [ label = "keyB" ] ;
+  a=>b [ label = "keyA" ] ;
+  a=>c [ label = "keyA" ] ;
+  c=>b [ label = "keyC" ] ;
+  c=>a [ label = "keyC" ] ;
+  ---  [ label = "Decrypt rqsX. Verify hX = h(rqsX). Process rqsX." ];
+  b=>c [ label = "sigB(new state)" ] ;
+  b=>a [ label = "sigB(new state)" ] ;
+  a=>b [ label = "sigA(new state)" ] ;
+  a=>c [ label = "sigA(new state)" ] ;
+  c=>b [ label = "sigC(new state)" ] ;
+  c=>a [ label = "sigC(new state)" ] ;
+  ---  [ label = "Verify state consistent, serve to clients." ];
+}
+\end{msc}
+\caption{\texttt{dename} consensus protocol}
+\label{consensusProtocol}
+\end{figure}
+
 # Lookups
 
 Simplistically, looking up a profile could be implemented by having the client
@@ -196,6 +264,7 @@ left siblings and the latter only has right siblings.
 
 # Freshness
 
+\label{freshness}
 The protocol as described guarantees that if a client looks up a profile for a
 name, this assignment must have been approved by all servers at some point in
 time. However, nothing so far prevents it from being superseded by a later
@@ -349,10 +418,22 @@ systems.
 - `salsa20` keystream for pseudo-random number generation to break ties
   between requested changes. Chosen for simplicity.
 
-## Integrating with applications
+## Integration with existing systems
 
 To show that it is practical to replace manual public key distribution with
 `dename`, we integrated a `dename` client with the Pond asynchronous messaging
 system and `ssh`. Modifying Pond to work with `dename` required changing 50
 lines of logic code and 200 lines if user interface declarations; the two `ssh`
 wrapper scripts are 2 lines each.
+
+Pond requires each pair of users to establish a shared secret before they can
+use Pond to communicate with each other. The Pond User Guide gives a detailed
+explanation of several acceptable ways that may be used to establish a shared
+secret, but despite the presence of instructions the intended users of Pond are
+described as "the discerning". By our best understanding, exchanging public keys
+between contacts is the limiting factor of Pond's usability. Our variant of
+Pond[@PondDename] includes the necessary user interface for associating a Pond
+account with a `dename` profile and adding contacts using their `dename` names
+instead of shared secrets.
+
+TODO: I would really like to claim that it is better
