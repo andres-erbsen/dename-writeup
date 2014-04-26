@@ -73,10 +73,10 @@ protocol can be seen in figure \ref{bcast}.
 
 If two honest servers transition to a new state as a result of a round, they transition to the same state:
 \begin{tabular}{c r}
-$h(\text{announcements A received}) = h(\text{announcements B received})$ & (collision resistance) \\
-announcements A received = announcements B received & (deterministic state machine, same start state) \\
+$h(\text{inputs of A}) = h(\text{inputs of B})$\\
+inputs of A = inputs of B\\
+apply(state, inputs of A) = apply(stata, inputs of B)\\
 \end{tabular}
-nextState(currentstate, announcements A received) = nextState(currentstate, announcements B received)
 
 In the description above, all messages are assumed to be authenticated. If one
 server was able to impersonate another, it could fool it into thinking that a
@@ -107,10 +107,10 @@ secret key has been lost, we also allow expiration:
 
 : `dename` directory schema
 
-| name | pubkey | profile | last modified |
+| \small name | \small pubkey | \small profile | \small last modified |
 |------|-----|---------|------|
-| alice |  $pk_a$  | $\text{\texttt{22:}}pk_\text{ssh}\text{\texttt{,443:}} pk_\text{x509}$   |  2014-04-10   |
-|  bob  |  $pk_b$ |  `25:alice@example.com`   | 2013-09-12  |
+| \small alice |  $pk_a$  | $\text{\texttt{22:}}pk_\text{ssh}\text{\texttt{,443:}} pk_\text{x509}$   |  2014-04-10   |
+|  \small bob  |  $pk_b$ |  `25:bob@example`   | 2013-09-12  |
 
 
 This requires users to confirm that they still use that profile by requesting a
@@ -221,15 +221,15 @@ of the timestamps are outside the allowed range and thus continue operating even
 when $f$ servers are down.
 
 Note that unlike in Spanner, the time uncertainty can be quite large for the
-system to operate correctly: even though future lookups by a machine that has
-its clokc within $\epsilon$ of the servers' clocks are only guaranteed to observe
+system to operate correctly. Even though future lookups by a machine that has
+its clock within $\epsilon$ of all servers' clocks are only guaranteed to observe
 that happened more than $dt+2\epsilon$ ago, we do not see it as a problem
 because we expect security-critical changes to profiles to be rare and therefore
 waiting after them to be acceptable. Proof of the $dt+2\epsilon$ bound: it will
 take at most $dt$ for the new mapping to be timestamped by the servers, the
 client will accept any mapping bearing a timstamp less than $\epsilon$ before
 its own observed time (because its clock may be at most $\epsilon$ ahead), but
-its clock may also be at most $\epsilon$ behind of the true time, in which case
+its clock may also be at most $\epsilon$ behind of the server time, in which case
 it may end up accepting a mapping that was timestamped $2\epsilon$ ago.
 
 In case a reasonably accurate clock source is not available, a client can still
@@ -268,16 +268,18 @@ change requests in order, validating each one against the current state of the
 directory and then updating the directory to reflect this change. At the end of
 each round, it prints out the current hash of the merkle tree.
 
-TODO: more details about the implementation
+We implemented this verifier using 40 lines of readable python code and 20 lines
+of `protobuf`[@protobuf] format specification. No custom libraries were used;
+an in-memory implementation of the Merkle-tree is included in these 40 lines.
 
 ## Incremental verification
 
 The system verification system described in the previous paragraph may be
-simple, but it will gradually become unpractical as the total number of handled
+simple, but it will become more and more costly as the total number of handled
 requests increases. We wish to provide a mechanism through which independent
 parties can participate in the verification of new changes made to the directory
 without having to pay the up-front cost of downloading all past changes.
-Just omitting the old changes from the inputs of the simple verifier would not
+Naively omitting the old changes from the inputs of the simple verifier would not
 yield a solution: it would have no way of determining whether a name has been
 already registered or not. Instead, the core servers will supply the verifiers
 with merkle-tree proofs about the relevant directory state in addition to the
@@ -292,35 +294,51 @@ the server-provided values instead of storing a local copy of the whole tree.
 
 # Implementation details
 
-We have implemented the core parts of the system in 4000 lines `go` code and
-integrated it with the Pond asynchronous messaging system (changing 50 lines of
-logic 200 lines of UI code). We also wrapped ssh to support using `dename` to
-verify user and host keys (2 lines each). The code handles both network and
-server failures but is not optimized for performance. Nonetheless, a laptop with
-a `Core 2 Duo L9400` cpu and a `Corsair Force GT` SSD disk can handle 300
-registrations per second, being only slightly disk-bound. This number may not
-seem high when compared to non-cryptographic databases, but when looked at as
-800 million registrations per month, it is unlikely to become a limiting factor
-in any realistic deployment scenario.
+We implemented the `dename` server and client libraries in less than 4000 lines
+of `go` using `postgresql` for storage. The current implementation is
+a compromise between performance and understandability. For example, in-process
+state is kept to eliminate redundant database accesses and server signature
+verifications, but client signatures are verified twice in some scenarios, batch
+signature verification is not used at all and some invariants are enforced using
+expensive database byte array indexes even though doing it manually is possible
+and has shown better performance. Nonetheless, a laptop with a `Core 2 Duo
+L9400` cpu and a `Corsair Force GT` SSD drive can handle 300 registrations per
+second, being just slightly disk-bound. This number may not seem high when
+compared to non-cryptographic databases, but when looked at as 800 million
+registrations per month, it is unlikely to become a limiting factor in any
+realistic deployment scenario.
 
-TODO: re-measure performance -- changes have been made
+## Server protocol and state
 
-The choice of cryptographic primitives goes as follows:
+## Cryptography
 
-- `ed25519` for digital signatures
--`sha256` for collision-resistant hashing and entropy extraction
-- `salsa20poly1305` encryption concealing messages from servers during the
-  commitment phase of a round
-- `salsa20` for non-cryptographic pseudo-random number generation to break ties
-  between requested changes.
+No exotic cryptographic primitives are required for the operation of `dename`,
+but because the choice of specific algorithms dictates performance and log size,
+will describe our picks and the reasoning behind them. For all algorithms, we
+required a security level of 128 bits and current adoption in real-world
+systems.
 
-The code can be broken up to five similarly sized chunks:
+- `ed25519` for digital signatures. Fast signature verification and small signature size are essential for the performance of `dename`. Unlike other common digital signature schemes, `ed25519` supports even faster batch verification.
+- `sha256` for collision-resistant hashing and entropy extraction. Widely used, fast enough.
+- `salsa20poly1305` encryption for concealing messages from servers during the
+  commitment phase of a round. Any authenticated encryption scheme would work, chosen for simplicity.
+- `salsa20` keystream for pseudo-random number generation to break ties
+  between requested changes. Chosen for simplicity.
+
+## Codebase
 
 - The consensus protocol, implemented as a network-agnostic state machine that
   uses a `postgresql` database to store its state.
-- The Merkle radix tree.
+- The on-disk Merkle radix tree.
 - `dename` server: accepts client requests over TCP and handles them as defined.
 - The `dename` client library and the command-line client.
 - Various utility functions: `postgresql` error handling, the pseudo-random
   number generator, a ring buffer, utilities for generating the server
   configuration file...
+
+# Integrating with applications
+
+integrated it with the Pond asynchronous messaging system (changing 50 lines of
+logic 200 lines of UI code). We also wrapped ssh to support using `dename` to
+verify user and host keys (2 lines each). The code handles both network and
+server failures but is not optimized for performance. 
