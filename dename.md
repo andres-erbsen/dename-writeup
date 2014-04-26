@@ -296,49 +296,63 @@ the server-provided values instead of storing a local copy of the whole tree.
 
 We implemented the `dename` server and client libraries in less than 4000 lines
 of `go` using `postgresql` for storage. The current implementation is
-a compromise between performance and understandability. For example, in-process
-state is kept to eliminate redundant database accesses and server signature
-verifications, but client signatures are verified twice in some scenarios, batch
-signature verification is not used at all and some invariants are enforced using
-expensive database byte array indexes even though doing it manually is possible
-and has shown better performance. Nonetheless, a laptop with a `Core 2 Duo
-L9400` cpu and a `Corsair Force GT` SSD drive can handle 300 registrations per
-second, being just slightly disk-bound. This number may not seem high when
-compared to non-cryptographic databases, but when looked at as 800 million
-registrations per month, it is unlikely to become a limiting factor in any
-realistic deployment scenario.
+a compromise between performance and understandability. For example, independent
+tasks are done in parallel and in-process state is kept to eliminate redundant
+database accesses and server signature verifications, but client signatures are
+verified twice in some scenarios, batch signature verification is not used at
+all and some invariants are enforced using expensive database byte array indexes
+even though doing it manually is possible and has shown better performance.
+Nonetheless, a laptop with a `Core 2 Duo L9400` cpu and a `Corsair Force GT` SSD
+drive can handle 300 registrations per second, being just slightly disk-bound.
+This number may not seem high when compared to non-cryptographic databases, but
+when looked at as 800 million registrations per month, it is unlikely to become
+a limiting factor in any realistic deployment scenario. Our implementation also
+detects and reports various kinds of deviations from the specified protocol by
+other servers even if ignoring them would be completely harmless -- this is
+intended to assist with debugging and validation of possible other implementations.
 
-## Server protocol and state
+## The consenus protocol
+
+The protocol used to maintain verifiable consensus in a group of peers which may
+include active adversaries is not specific to `dename` and can potentially be of
+interest for other projects. We preserve this separation in the implementation:
+a rough quarter of the codebase is made up by a reusable consensus library. The
+library that waits for the application to submit operations to be handled and
+calls an application-specified state transition function with the inputs chosen
+for a single round whenever one is processed. Similarly, network communication
+is implemented by the application and exposed to the library using a simple
+`send(peer, data)` interface. However, persistence is currently handled by the
+consensus library itself because the crash recovery procedure involves fairly
+complicated queries to the consensus-specific state.
+
+TODO: invariants of round states somewhere?
+
+## Persistent Merkle radix tree
+
+Daniel, please write this. Or if we do not want this section, remove it.
 
 ## Cryptography
 
 No exotic cryptographic primitives are required for the operation of `dename`,
 but because the choice of specific algorithms dictates performance and log size,
 will describe our picks and the reasoning behind them. For all algorithms, we
-required a security level of 128 bits and current adoption in real-world
+required a security level of 128 bits and existsing adoption in real-world
 systems.
 
-- `ed25519` for digital signatures. Fast signature verification and small signature size are essential for the performance of `dename`. Unlike other common digital signature schemes, `ed25519` supports even faster batch verification.
-- `sha256` for collision-resistant hashing and entropy extraction. Widely used, fast enough.
+- `ed25519` for digital signatures. Fast signature verification and small
+  signature and public key size are essential for the performance of `dename`.
+  Unlike other common digital signature schemes, `ed25519` supports even faster
+  batch verification. - `sha256` for collision-resistant hashing and entropy
+  extraction. Widely used, fast enough.
 - `salsa20poly1305` encryption for concealing messages from servers during the
   commitment phase of a round. Any authenticated encryption scheme would work, chosen for simplicity.
 - `salsa20` keystream for pseudo-random number generation to break ties
   between requested changes. Chosen for simplicity.
 
-## Codebase
+## Integrating with applications
 
-- The consensus protocol, implemented as a network-agnostic state machine that
-  uses a `postgresql` database to store its state.
-- The on-disk Merkle radix tree.
-- `dename` server: accepts client requests over TCP and handles them as defined.
-- The `dename` client library and the command-line client.
-- Various utility functions: `postgresql` error handling, the pseudo-random
-  number generator, a ring buffer, utilities for generating the server
-  configuration file...
-
-# Integrating with applications
-
-integrated it with the Pond asynchronous messaging system (changing 50 lines of
-logic 200 lines of UI code). We also wrapped ssh to support using `dename` to
-verify user and host keys (2 lines each). The code handles both network and
-server failures but is not optimized for performance. 
+To show that it is practical to replace manual public key distribution with
+`dename`, we integrated a `dename` client with the Pond asynchronous messaging
+system and `ssh`. Modifying Pond to work with `dename` required changing 50
+lines of logic code and 200 lines if user interface declarations; the two `ssh`
+wrapper scripts are 2 lines each.
