@@ -88,7 +88,13 @@
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{6pt plus 2pt minus 1pt}
 \setlength{\emergencystretch}{3em}  % prevent overfull lines
-\setcounter{secnumdepth}{0}
+\setcounter{secnumdepth}{2}
+
+\let\OLDsection\section
+\renewcommand\section[1]{%
+	\let\section\OLDsection%
+	\section*{#1}
+}
 
 \usepackage{biblatex}
 

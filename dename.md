@@ -1,4 +1,4 @@
-There is nothing sophisticated in this work. What we are proposing is a way to
+There is nothing sophisticated in this work. We are proposing a way to
 use techniques that are well-understood and often dismissed as trivial to build
 a public key distribution mechanism we consider suitable for universal adoption.
 
@@ -144,7 +144,7 @@ This requires users to confirm that they still use that profile by requesting a
 nil change to it. The possibility of a profile expiring complicates the
 situation because then somebody else may claim the name, but the old profile
 still fits the criteria of being accepted by all servers -- this is the main
-motivation for freshness assertions \ref{freshness}. It is, of course, possible
+motivation for freshness assertions (section \ref{freshness}). It is, of course, possible
 to have names not expire, but by our best judgment doing so would seriously
 hamper the usability of the system when the space due to more and more names
 pointing to profiles with lost keys.
