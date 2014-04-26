@@ -6,18 +6,6 @@
 \setlength{\parskip}{0pt}
 \usepackage{setspace}
 \usepackage{msctexen}
-\usepackage{longtable,booktabs}
-
-\makeatletter
-\let\saved@longtable\longtable
-\long\def\foo#1\LT@err#2#3#4!!{\def\longtable{#1#4}}
-\expandafter\foo\longtable!!
-
-\long\def\foo#1\@outputpage#2\@outputpage#3!!{%
-\def\LT@output{#1\@opcol#2\@opcol#3}}
-\expandafter\foo\LT@output!!
-\makeatother
-
 
 \onehalfspacing
 \usepackage[switch]{lineno}
@@ -92,7 +80,7 @@
 
 \usepackage{biblatex}
 
-\title{\vspace{-2cm}Dename}
+\title{\vspace{-5mm}Dename}
 \author{Andres Erbsen \and Daniel Ziegler}
 
 \begin{document}
