@@ -12,12 +12,12 @@ certificate-authority-based public key infrastructure requires breaking any one
 certificate authority of attacker's choice[@EllisonSchneierPKI][@SchneierVerisignHacked] and a breach of the Kerberos domain
 controller would result in a total compromise of the security domain. For this
 reason, security-critical applications try to work around the need for a
-dircetory service, for example ssh, OpenPGP, OTR and pond have users manually
+dircetory service, for example `ssh`, OpenPGP, OTR and pond have users manually
 communicate the critical bits of authenticating information to each other. This
 approach is tedious[@arsTechnicaGGreenwaldPGP] and prone to human error, especially if the users in
-question are not online at the same time [@Johnny]. Recently, better ways to
-construct a user directory have been
-discovered[@CertificateTransparancy][@SwartzNamecoin][@NameCoin]. However, all
+question are not online at the same time [@Johnny2008]. Recently, better ways to
+maintain a user directory have been
+discovered[@SwartzSquareZoooko][@CertificateTransparancy]. However, all
 of those rely on economic feedback loops for security, and the cost is passed on
 to the users. We present `dename` -- a distributed user directory service with a
 simpler security guarantee and lower projected operating costs.
@@ -93,7 +93,7 @@ message and then every server broadcasts an acknowledgment of what they received
 from the announcer. In `dename`, all servers announce exactly one set of changes
 during each round, so we can group each server's acknowledgments of all messages
 it received into one message. Furthermore, as just the equality of the sets of
-announcements received by different servers is important (not the actual
+announcements received by diffedename.pdfrent servers is important (not the actual
 contents), we can use a cryptographic hash of all received announcements in an
 acknowledgment instead of the announcements themselves. The verified broadcast
 protocol can be seen in figure \ref{bcast}.
@@ -102,7 +102,7 @@ If two honest servers transition to a new state as a result of a round, they tra
 \begin{tabular}{c r}
 $h(\text{inputs of A}) = h(\text{inputs of B})$\\
 inputs of A = inputs of B\\
-apply(state, inputs of A) = apply(stata, inputs of B)\\
+apply(state, inputs of A) = apply(state, inputs of B)\\
 \end{tabular}
 
 In the description above, all messages are assumed to be authenticated. If one
@@ -136,7 +136,7 @@ secret key has been lost, we also allow expiration:
 
 | \small name | \small pubkey | \small profile | \small last modified |
 |------|-----|---------|------|
-| \small alice |  $pk_a$  | $\text{\texttt{22:}}pk_\text{ssh}\text{\texttt{,443:}} pk_\text{x509}$   |  2014-04-10   |
+| \small alice |  $pk_a$  | $\text{\texttt{22:}}pk_\texttt{ssh}\text{\texttt{,443:}} pk_\text{x509}$   |  2014-04-10   |
 |  \small bob  |  $pk_b$ |  `25:bob@example`   | 2013-09-12  |
 
 
@@ -421,7 +421,7 @@ systems.
 ## Integration with existing systems
 
 To show that it is practical to replace manual public key distribution with
-`dename`, we integrated a `dename` client with the Pond asynchronous messaging
+`dename`, we integrated a `dename` client with the Pond[@Pond] asynchronous messaging
 system and `ssh`. Modifying Pond to work with `dename` required changing 50
 lines of logic code and 200 lines if user interface declarations; the two `ssh`
 wrapper scripts are 2 lines each.
@@ -432,7 +432,7 @@ explanation of several acceptable ways that may be used to establish a shared
 secret, but despite the presence of instructions the intended users of Pond are
 described as "the discerning". By our best understanding, exchanging public keys
 between contacts is the limiting factor of Pond's usability. Our variant of
-Pond[@PondDename] includes the necessary user interface for associating a Pond
+Pond includes the necessary user interface for associating a Pond
 account with a `dename` profile and adding contacts using their `dename` names
 instead of shared secrets.
 
