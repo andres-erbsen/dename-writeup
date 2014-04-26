@@ -405,7 +405,7 @@ Daniel, please write this. Or if we do not want this section, remove it.
 No exotic cryptographic primitives are required for the operation of `dename`,
 but because the choice of specific algorithms dictates performance and log size,
 will describe our picks and the reasoning behind them. For all algorithms, we
-required a security level of 128 bits and existsing adoption in real-world
+required a security level of 128 bits and existing adoption in real-world
 systems.
 
 - `ed25519` for digital signatures. Fast signature verification and small
@@ -434,6 +434,18 @@ described as "the discerning". By our best understanding, exchanging public keys
 between contacts is the limiting factor of Pond's usability. Our variant of
 Pond includes the necessary user interface for associating a Pond
 account with a `dename` profile and adding contacts using their `dename` names
-instead of shared secrets.
+instead of shared secrets, thus enabling an user experience similar to email.
 
-TODO: I would really like to claim that it is better
+We can leverage `dename` to improve the usability of `ssh` in two separate ways.
+As with Pond, we can use `dename` to look up users' public keys. As `ssh` reads
+the keys that an user is allowed to log in with from a file, we can simply get
+the newly authorized user's public key from `dename` and append it to that file.
+A less obvious but in our opinion more useful enhancement is to verify ssh
+*host* keys against the maintainer's `dename` profile. When connecting to
+a machine the first time, `ssh` usually presents the user with the server's
+public key hash and asks them to check its authenticity. Instead, if we know the
+server maintainer's `dename` name, we can preemptively look up the corresponding
+profile and get the host key from there, without having to prompt the user at
+all. As in our experience many users tend to neglect the `ssh` host key
+validation step, this modification will not only increase convenience but also
+improve security.
