@@ -1,8 +1,9 @@
-There is nothing sophisticated in this work. We are proposing a way to
-use techniques that are well-understood and often dismissed as trivial to build
-a public key distribution mechanism we consider suitable for universal adoption.
 
-# Abstract
+
+\abstract
+There is nothing sophisticated in this work. Using techniques that are
+widely understood and often dismissed as trivial, we build a public key
+distribution mechanism that is suitable for universal adoption.
 
 Many applications rely on some form of directory service for connecting
 human-meaningful user identifiers (names) with application data associated with
@@ -12,15 +13,16 @@ certificate-authority-based public key infrastructure requires breaking any one
 certificate authority of attacker's choice[@EllisonSchneierPKI][@SchneierVerisignHacked] and a breach of the Kerberos domain
 controller would result in a total compromise of the security domain. For this
 reason, security-critical applications try to work around the need for a
-dircetory service, for example `ssh`, OpenPGP, OTR and pond have users manually
+dircetory service, for example, `ssh`, OpenPGP, OTR and pond have users manually
 communicate the critical bits of authenticating information to each other. This
 approach is tedious[@arsTechnicaGGreenwaldPGP] and prone to human error, especially if the users in
-question are not online at the same time [@Johnny2008]. Recently, better ways to
+question are not online at the same time[@Johnny2008]. Recently, better ways to
 maintain a user directory have been
 discovered[@SwartzSquareZoooko][@CertificateTransparancy]. However, all
 of those rely on economic feedback loops for security, and the cost is passed on
 to the users. We present `dename` -- a distributed user directory service with a
 simpler security guarantee and lower projected operating costs.
+\endabstract
 
 # Overview
 
@@ -112,6 +114,14 @@ authentication because unlike faster symmetric authentication mechanisms,
 signatures can be used to construct an audit trail in case one of the servers
 sends out different announcements or acknowledgments during the same round.
 
+: `dename` directory schema
+
+| \small name | \small pubkey | \small profile | \small last modified |
+|------|-----|---------|------|
+| \small alice |  $pk_a$  | $\text{\texttt{22:}}pk_\texttt{ssh}\text{\texttt{,443:}} pk_\text{x509}$   |  2014-04-10   |
+|  \small bob  |  $pk_b$ |  `25:bob@example`   | 2013-09-12  |
+
+
 The semantics of what kind of changes are allowed are in some sense a detail,
 but they are not an unimportant one. For example, if one user could edit another
 one's profile without their consent, the directory would be of little use. Out
@@ -132,14 +142,6 @@ secret key has been lost, we also allow expiration:
 4. If the profile a name maps to has not been modified in the last $T_e$ rounds,
    the profile is automatically deleted.
 
-: `dename` directory schema
-
-| \small name | \small pubkey | \small profile | \small last modified |
-|------|-----|---------|------|
-| \small alice |  $pk_a$  | $\text{\texttt{22:}}pk_\texttt{ssh}\text{\texttt{,443:}} pk_\text{x509}$   |  2014-04-10   |
-|  \small bob  |  $pk_b$ |  `25:bob@example`   | 2013-09-12  |
-
-
 This requires users to confirm that they still use that profile by requesting a
 nil change to it. The possibility of a profile expiring complicates the
 situation because then somebody else may claim the name, but the old profile
@@ -148,26 +150,6 @@ motivation for freshness assertions (section \ref{freshness}). It is, of course,
 to have names not expire, but by our best judgment doing so would seriously
 hamper the usability of the system when the space due to more and more names
 pointing to profiles with lost keys.
-
-The described rules of changing the directory are clearly sensitive to the order
-in which changes are processed: it two servers propose two valid requests to
-modify the same name in different ways, it is crucial to ensure that all servers
-choose to apply them in the same order, because applying one of them may make
-the other invalid. We use a standard protocol akin to [@XXXsharedRandomness] to
-establish shared randomness between servers and use it to randomly pick an order
-in which to process the changes.
-
-However, a malicious server could observe the announcements other servers make
-and deliberately introduce requests that conflict with some user's requests. To
-prevent this, the requests are hashed before they are broadcast using the
-verified broadcast protocol and actual requests are only revealed after every
-server has announced the hash of their proposed changes. Now, all changes a
-server proposes must be independent of the ones proposed by other servers
-because it only gets to observe the other proposals after broadcasting its own.
-To spread out network load, the current implementation actually pushes encrypted
-requests to other servers before having received hashes from them and reveals
-the encryption key to reveal the requests.
-The final protocol is displayed in figure \ref{consensusProtocol}.
 
 \begin{figure}
 \begin{msc}
@@ -209,6 +191,26 @@ msc {
 \caption{\texttt{dename} consensus protocol}
 \label{consensusProtocol}
 \end{figure}
+
+The described rules of changing the directory are clearly sensitive to the order
+in which changes are processed: it two servers propose two valid requests to
+modify the same name in different ways, it is crucial to ensure that all servers
+choose to apply them in the same order, because applying one of them may make
+the other invalid. We use a standard protocol akin to [@XXXsharedRandomness] to
+establish shared randomness between servers and use it to randomly pick an order
+in which to process the changes.
+
+However, a malicious server could observe the announcements other servers make
+and deliberately introduce requests that conflict with some user's requests. To
+prevent this, the requests are hashed before they are broadcast using the
+verified broadcast protocol and actual requests are only revealed after every
+server has announced the hash of their proposed changes. Now, all changes a
+server proposes must be independent of the ones proposed by other servers
+because it only gets to observe the other proposals after broadcasting its own.
+To spread out network load, the current implementation actually pushes encrypted
+requests to other servers before having received hashes from them and reveals
+the encryption key to reveal the requests.
+The final protocol is displayed in figure \ref{consensusProtocol}.
 
 # Lookups
 
