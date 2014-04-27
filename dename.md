@@ -362,10 +362,18 @@ mechanism.*
 ## Coherent caching
 
 A continuously running incremental verifier will observe all changes to the
-directory. Therefore, if the verifier ever learns a name and its corresponding
-profile, it will also receive all future updates to it. Servicing a lookup for
-a name only requires having the branch of the Merkle tree that corresponds to
-that name, so an incomplete but up-to-date directory is sufficient to TODO
+directory. Therefore, if the verifier ever learns a name and the
+corresponding profile, it will also receive all future updates to it.
+Servicing a lookup for a name requires having the branch of the Merkle tree
+that corresponds to that name, not the whole tree, so a verifier can serve
+the contents of its possibly incomplete but up-to-date directory.
+Furthermore, when presented with a lookup request for a name that it does not
+have a profile for, it can just look it up from a server that has a more
+complete version of the directory. A server operating this way is
+effectively a cache and can be useful to reduce lookup latency in a local
+network and reduce the load on the core servers. Unlike with DNS and Namecoin,
+a client using a cache achieves the same security guarantees as a client that
+interacts with any one core server.
 
 # Implementation details
 
