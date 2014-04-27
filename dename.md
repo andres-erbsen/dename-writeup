@@ -17,42 +17,43 @@ certificate-authority-based public key infrastructure
 [@EllisonSchneierPKI][@SchneierVerisignHacked]; a breach of the Kerberos domain
 controller would result in a total compromise of the security domain. For this
 reason, security-critical applications try to work around the need for
-a dircetory service, for example, `ssh`, OpenPGP, OTR and Pond have users
+a dircetory service; for example, `ssh`, OpenPGP, OTR and Pond have users
 manually communicate the critical bits of authenticating information to each
 other. This approach is tedious[@arsTechnicaGGreenwaldPGP] and prone to human
 error, especially if the users in question are not online at the same
 time[@Johnny2008]. Recently, better ways to maintain a user directory have been
-discovered, such as [@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin.
-However, all of those rely on economic feedback loops for security, and the cost
-is passed on to the users. We present `dename` -- a distributed user directory
-service with a simpler security guarantee and lower projected operating costs.
+discovered, such as [@SwartzSquareZoooko], [@CertificateTransparancy] and
+NameCoin. However, all of those rely on economic feedback loops for security,
+and the cost is passed on to the users. We present `dename` -- a distributed
+user directory service that works under the assumption that any one of the
+servers is secure.
 \endabstract
 
 # Overview
 
 In essence, `dename` works by having a group of predetermined but independently
 administered servers maintain identical copies of the user directory and
-collectively vouch for the correctness of its contents. Any one server being
-honest is sufficient for a unanimous result to be correct. We have the servers
-require, that all updates to a user's profile are digitally signed by that
-user, thus preventing any other party (including another server) from
-modifying it. The discussion of the operation of this system is
-organized as follows: first, we describe how the servers communicate with each
-other to apply changes to the directory while ensuring that they end up with
-exactly equal results. In general, this is the problem of replicating a state
-machine in the presence of malicious faults, but our solution is significantly
-simpler than the previous because it requires all parties to participate in
-order to make progress.  Second, we describe the procedure of looking up
-users' profiles. We start with a trivial but inefficient protocol and end up
-storing the directory in a merkle-hashed radix tree and serving its branches.
-We argue that if a lookup succeeds then the result must have been accepted by
-all servers. Third, we tackle the issue of freshness, that is, we provide
-a system for ensuring that the result represents the most up-to-date state of
-the system. Fourth, we show how independent verifiers can be added to this
-system in the spirit of Certificate Transparency[@CertificateTransparancy] and
-VerSum[@VerSum]. Starting from the Merkle tree data structure described
-previously this addition is relatively straightforward and, as a side effect,
-enables efficient coherent caching of lookup results.
+collectively vouch for the correctness of the directory's contents. Any one
+server's honesty is sufficient for a unanimous result to be correct. We have the
+servers require that all updates to a user's profile are digitally signed by
+that user, thus preventing any other party (including malicious servers) from
+modifying it. The discussion of the operation of this system is organized as
+follows: first, we describe how the servers communicate with each other to apply
+changes to the directory while ensuring that they end up with identical
+results. In general, this is the problem of replicating a state machine in the
+presence of malicious faults, but our solution is significantly simpler than the
+previous because it requires all parties to participate in order to make
+progress.  Second, we describe the procedure of looking up users' profiles. We
+start with a trivial but inefficient protocol and end up storing the directory
+in a Merkle-hashed radix tree and serving its branches. We argue that if
+a lookup succeeds then the result must have been accepted by all servers. Third,
+we tackle the issue of freshness, that is, we provide a system for ensuring that
+the result represents the most up-to-date state of the system. Fourth, we show
+how independent verifiers can be added to this system in the spirit of
+Certificate Transparency[@CertificateTransparancy] and VerSum[@VerSum]. Starting
+from the Merkle tree data structure described previously this addition is
+relatively straightforward and, as a side effect, enables efficient coherent
+caching of lookup results.
 
 # Maintaining consensus
 
@@ -78,19 +79,20 @@ msc {
 \label{bcast}
 \end{figure}
 
-Changes to the user directory happen in discrete rounds: every once in a while
-the servers propose changes and apply them in lockstep. We use a verified
-broadcast primitive (described below) to ensure that all servers receive learn
-the same set of requested changes and we make sure that the algorithm for
-handling them is deterministic. Additionally, we describe some unfair behavior
-servers could engage in that would not directly violate the security claim but
-is nevertheless undesirable and modify the protocol to counteract that.
+Changes to the user directory happen in discrete rounds: with some regularity
+(currently every 3 seconds) the servers propose changes and apply them in
+lockstep. We use a verified broadcast primitive (described below) to ensure that
+all servers receive the same set of requested changes and the algorithm for
+handling them is deterministic. Additionally, we describe some malicious
+behavior servers could engage in that would not directly violate the security
+claim but is nevertheless undesirable and modify the protocol to counteract
+that behavior.
 
 The physical analogy of verified broadcast is a public announcement: everybody
 learns what the announcer has to say and can be sure that others heard the same
 thing. In computer networks allowing only point-to-point communication we can
 emulate this using a two-phase protocol: first the announcer broadcasts the
-message and then every server broadcasts an acknowledgment of what they received
+message, then every server broadcasts an acknowledgment of what they received
 from the announcer. In `dename`, all servers announce exactly one set of changes
 during each round, so we can group each server's acknowledgments of all messages
 it received into one message. Furthermore, as just the equality of the sets of
@@ -123,8 +125,8 @@ sends out different announcements or acknowledgments during the same round.
 \end{table}
 
 The semantics of what kind of changes are allowed are in some sense a detail,
-but they are not an unimportant one. For example, if one user could edit another
-one's profile without their consent, the directory would be of little use. Out
+but they are important. For example, if one user could edit another one's
+profile without their consent, the directory would be of little use. Out
 implementation sets the following constraints:
 
 1. All proposed profiles must contain a public key that can be used to verify
@@ -144,32 +146,33 @@ secret key has been lost, we also allow expiration:
 
 This requires users to regularly confirm that they still use that profile by
 requesting a nil change to it. The possibility of a profile expiring
-complicates the situation because then somebody else may claim the name, but
-the old profile still fits the criteria of being accepted by all servers --
-this is the main motivation for freshness assertions (section
-\ref{freshness}). It is, of course, possible to have names not expire, but
-doing so would seriously hamper the usability of the system when the space due
-to more and more names pointing to profiles with lost keys.
+complicates the situation because somebody else may later claim the name, but
+the old profile still fits the criteria of being accepted by all servers -- this
+is the main motivation for freshness assertions (section \ref{freshness}). It
+is, of course, possible to have names not expire, but doing so would seriously
+hamper the usability of the system when the space due to more and more names
+pointing to profiles with lost keys.
 
 The described rules of changing the directory are sensitive to the order
 in which changes are processed: if two servers propose two valid requests to
 modify the same name in different ways, it is crucial to ensure that all servers
 choose to apply them in the same order because applying one of them may make
 the other invalid. We use a standard protocol akin to [@XXXsharedRandomness] to
-establish shared randomness between servers and use it to randomly pick an order
-in which to process the changes.
+establish shared randomness between servers and use it to pick a random
+permutation of the list of servers that determines the order in which the
+requests they introduced are handled.
 
 However, a malicious server could observe the announcements other servers make
 and deliberately introduce requests that conflict with a particular user's
 requests. To prevent this, the requests are hashed before they are broadcast
 using the verified broadcast protocol and actual requests are only revealed
-after every server has announced the hash of their proposed changes. Now, all
-changes a server proposes must be independent of the ones proposed by other
-servers because it only gets to observe the other proposals after broadcasting
-its own. To spread out network load, the current implementation actually
-pushes encrypted requests to other servers before having received hashes from
-them and reveals the encryption key to reveal the requests. The final protocol
-is displayed in figure \ref{consensusProtocol}.
+after every server has announced the hash of their proposed changes. Because of
+this, all changes a server proposes must be independent of the ones proposed by
+other servers because it only gets to observe the other proposals after
+broadcasting its own. To spread out network load, the current implementation
+actually pushes encrypted requests to other servers before having received
+hashes from them and reveals the encryption key to reveal the requests. The
+final protocol is displayed in figure \ref{consensusProtocol}.
 
 \begin{figure}[hbt]
 \begin{msc}
@@ -203,7 +206,7 @@ msc {
 
 Simplistically, looking up a profile could be implemented by having the client
 download the entire directory from each server and consider it correct if all
-copies are equal. Tis is impractical if there are millions of users.  As an
+copies are equal. This is impractical if there are millions of users.  As an
 improvement on this, the client could instead download the hash of the
 directory from all servers and the whole directory from one server. If the
 hashes the servers reported are all equal to the hash of the downloaded
@@ -211,12 +214,13 @@ directory, the directory must be correct. This scheme is slightly better, but
 still insufficient.
 
 What we need is mechanism to prove that a single name-profile pair is a part of
-a larger directory with the given hash without downloading the whole directory. Let's assume that the directory is
-implemented as a binary prefix tree with profiles in the leaves. Now, every
-node in the tree is augmented with a hash of its children. If the hash
-function is collision resistant, each node uniquely determines the state of
-all names (and the respective profiles) that start with the prefix this node
-corresponds to. The root hash summarizes the whole directory.
+a larger directory with the given hash without downloading the whole directory.
+Assume that the directory is implemented as a binary prefix tree with profiles
+in the leaves. Now, every node in the tree is augmented with a hash of its
+children. If the hash function is collision resistant, each node uniquely
+determines the state of all names (and the respective profiles) that start with
+the prefix this node corresponds to. The root hash summarizes the whole
+directory.
 
 To prove that a name-profile pair is a part of a directory with a known root
 hash, a server supplies the client with the list of hashes stored in the
@@ -231,7 +235,7 @@ the known root hash. As all servers vouched for the whole dictionary and we
 are assuming that at least one of them is honest, the profile must have been
 registered adhering to the requirements of this system.
 
-TODO: picture of merkle tree, like in <http://comjnl.oxfordjournals.org/content/27/3/218.full.pdf>
+TODO: picture of Merkle tree, like in <http://comjnl.oxfordjournals.org/content/27/3/218.full.pdf>
 
 As an optimization, the servers can sign the root hash after each round and
 send the signature to all other servers. This way, a client only has to talk
@@ -240,7 +244,7 @@ about the result after verifying the signatures. The current implementation
 also uses the hash of a name instead of the name itself in the prefix tree.
 This serves to keep the tree balanced and simplify the implementation. As we
 assume hash collisions do not happen, it does not change any other
-properties of the system
+properties of the system.
 
 ## Name absence proofs
 
@@ -302,14 +306,14 @@ answer.
 We view having a fixed set of servers as a necessary evil: it is inherently a
 central point of compromise, but the only alternative we know is to have the
 evolution of the directory state determined by the entities that score highest
-by some arbitrary metric, for the hashing power they control as in BitCoin and
+by some arbitrary metric, such as the hashing power they control as in BitCoin and
 NameCoin. To mitigate this weakness, we provide an additional accountability
-mechanism: everyone is welcome to observe how the state of the directory is
+mechanism: everyone is able to observe how the state of the directory is
 changed by the central servers, detect deviations from the set rules and, in
 case of invalid changes being applied, have proof of wrongdoing on the servers'
 part. We describe a *verifier* design that is significantly simpler (and
 therefore more likely to be implemented correctly) than the servers themselves.
-We also show how to leverage the merkle tree structure already used for lookups
+We also show how to leverage the Merkle tree structure already used for lookups
 to audit the changes made during an interval of time without ever having to
 download the whole directory.
 
@@ -319,14 +323,14 @@ The purpose of the simple verifier design is to check that the core servers have
 been enforcing the semantics of the directory. The design we describe here does
 not aim to provide optimal throughput or responsiveness, instead we focus
 on keeping the implementation as simple as possible with the hope that it can
-therefore be widely audited and found confidence in.
+therefore be widely audited and gain public confidence.
 
 The program takes as input a range of rounds starting with the very first one
 (in the beginning of which the directory was empty) and for each round the
 ordered sequence of changes considered by the core servers. It processes the
 change requests in order, validating each one against the current state of the
 directory and then updating the directory to reflect this change. At the end of
-each round, it prints out the current hash of the merkle tree.
+each round, it prints out the current hash of the Merkle tree.
 To verify that some sequence of observed root hashes corresponds to
 a consistent history of valid changes to the directory, one would download
 a copy of the purported changes applied to the directory from any one server
@@ -350,10 +354,10 @@ directory without having to pay the up-front cost of downloading all past
 changes. Naively omitting the old changes from the inputs of the simple
 verifier would not yield a solution: it would have no way of determining
 whether a name has been already registered or not. Instead, the core servers
-will supply the verifiers with merkle-tree proofs about the relevant directory
+will supply the verifiers with Merkle-tree proofs about the relevant directory
 state in addition to the requested changes. Specifically, each request to
-transfer some name will be annotated with the old profile, its merkle path and
-all siblings used to calculate the hashes for the new merkle path. The
+transfer a name will be annotated with the old profile, its Merkle path and
+all siblings used to calculate the hashes for the new Merkle path. The
 verifier will then use the lookup procedure to verify the old mapping and
 calculate the new root hash using the server-provided values instead of
 storing a local copy of the whole tree. *We have not implemented this
@@ -362,18 +366,17 @@ mechanism.*
 ## Coherent caching
 
 A continuously running incremental verifier will observe all changes to the
-directory. Therefore, if the verifier ever learns a name and the
-corresponding profile, it will also receive all future updates to it.
-Servicing a lookup for a name requires having the branch of the Merkle tree
-that corresponds to that name, not the whole tree, so a verifier can serve
-the contents of its possibly incomplete but up-to-date directory.
-Furthermore, when presented with a lookup request for a name that it does not
-have a profile for, it can just look it up from a server that has a more
-complete version of the directory. A server operating this way is
-effectively a cache and can be useful to reduce lookup latency in a local
-network and reduce the load on the core servers. Unlike with DNS and Namecoin,
-a client using a cache achieves the same security guarantees as a client that
-interacts with any one core server.
+directory. Therefore, if the verifier ever learns a name and the corresponding
+profile, it will also receive all future updates to that name. Servicing
+a lookup for a name requires having the branch of the Merkle tree that
+corresponds to that name, not the whole tree, so a verifier can serve the
+contents of its possibly incomplete but up-to-date directory. Furthermore, when
+presented with a lookup request for a name that it does not have a profile for,
+it can just look up the name from a server that has a more complete version of
+the directory. A server operating this way is effectively a cache and can be
+useful to reduce lookup latency in a local network and reduce the load on the
+core servers. Unlike with DNS and Namecoin, a client using a cache achieves the
+same security guarantees as a client that interacts with any one core server.
 
 # Implementation details
 
@@ -396,17 +399,16 @@ intended to assist with debugging and validation of possible other implementatio
 
 ## The consenus protocol
 
-The protocol used to maintain verifiable consensus in a group of peers which may
-include active adversaries is not specific to `dename` and can potentially be of
-interest for other projects. We preserve this separation in the implementation:
-a rough quarter of the codebase is made up by a reusable consensus library. The
-library that waits for the application to submit operations to be handled and
-calls an application-specified state transition function with the inputs chosen
-for a single round whenever one is processed. Similarly, network communication
-is implemented by the application and exposed to the library using a simple
-`send(peer, data)` interface. However, persistence is currently handled by the
-consensus library itself because the crash recovery procedure involves fairly
-complicated queries to the consensus-specific state.
+The protocol we use to maintain verifiable consensus in a group of peers, some of which may be malicious, is not specific to `dename` and can potentially
+be of interest for other projects. We preserve this separation in the
+implementation: roughly a quarter of the codebase is made up by a reusable
+consensus library. The library waits for the application to submit operations to
+be handled and calls an application-specified state transition function with the
+inputs chosen for a single round whenever one is processed. Similarly, network
+communication is implemented by the application and exposed to the library using
+a simple `send(peer, data)` interface. However, persistence is currently handled
+by the consensus library itself because the crash recovery procedure involves
+fairly complicated queries to the consensus-specific state.
 
 We sought to preserve the semantic separation between rounds in the
 implementation by making each round be managed by its own thread and control
@@ -421,14 +423,23 @@ The code also makes use of similar constraints implied by this rule and the
 explicit requirements of the protocol to bound the window during which each type
 of message can arrive from another correct server during one round.
 
-When a server crashes, it loses its in-memory state. To have an as complete overview of the exact behavior of other servers, our implementation stores all received messages on disk. This requirement could be loosened in a performance-oriented implementation, but it is absolutely critical so synchronize the following pieces of information to disk before acting upon them:
+When a server crashes, it loses its in-memory state. To have a complete overview
+of the exact behavior of other servers, our implementation stores all received
+messages on disk. This requirement could be loosened in a performance-oriented
+implementation, but it is absolutely critical to synchronize the following
+pieces of information to disk before acting upon them:
 
 - The symmetric key used for pushed requests
 - Whether a commitment has been made
 - Any requests pushed or committed to
-- The acknowledged commitments' singatures
+- The acknowledged commitments' signatures
 
-Currently, the in-memory data structures are reconstructed after a crash by reinterpreting the stored messages and using the saved encryption key instead of generating a new one. This approach is very robust and allows for relatively straightforward code, but it depends on having a full log af all messages during the last 3 rounds. Synchronously writing these messages to disk is the performance bottleneck of the current implementation.
+Currently, the in-memory data structures are reconstructed after a crash by
+reinterpreting the stored messages and using the saved encryption key instead of
+generating a new one. This approach is very robust and allows for relatively
+straightforward code, but it depends on having a full log of all messages
+received during the last 3 rounds. Synchronously writing these messages to disk
+is the performance bottleneck of the current implementation.
 
 ## Persistent Merkle radix tree
 
@@ -438,7 +449,7 @@ TODO
 
 No exotic cryptographic primitives are required for the operation of `dename`,
 but because the choice of specific algorithms dictates performance and log size,
-will describe our picks and the reasoning behind them. For all algorithms, we
+will describe our choices and the reasoning behind them. For all algorithms, we
 required a security level of 128 bits and existing adoption in real-world
 systems.
 
@@ -463,12 +474,12 @@ wrapper scripts are 2 lines each.
 Pond requires each pair of users to establish a shared secret before they can
 use Pond to communicate with each other. The Pond User Guide gives a detailed
 explanation of several acceptable ways that may be used to establish a shared
-secret, but despite the presence of instructions the intended users of Pond are
-described as "the discerning". We believe that exchanging public keys
-between contacts is the limiting factor of Pond's usability. Our variant of
-Pond includes the necessary user interface for associating a Pond
-account with a `dename` profile and adding contacts using their `dename` names
-instead of shared secrets, thus enabling an user experience similar to email.
+secret, but despite the presence of instructions, Pond is mainly intended to be
+used by "the discerning", just anybody. We believe that exchanging public keys
+between contacts is the limiting factor of Pond's usability. Our variant of Pond
+includes the necessary user interface for associating a Pond account with
+a `dename` profile and adding contacts using their `dename` names instead of
+shared secrets, thus enabling an user experience similar to email.
 
 We can leverage `dename` to improve the usability of `ssh` in two separate ways.
 As with Pond, we can use `dename` to look up users' public keys. As `ssh` reads
