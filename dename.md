@@ -231,6 +231,8 @@ the known root hash. As all servers vouched for the whole dictionary and we
 are assuming that at least one of them is honest, the profile must have been
 registered adhering to the requirements of this system.
 
+TODO: picture of merkle tree, like in <http://comjnl.oxfordjournals.org/content/27/3/218.full.pdf>
+
 As an optimization, the servers can sign the root hash after each round and
 send the signature to all other servers. This way, a client only has to talk
 to one server to do a lookup but can still be assured that all servers agree
@@ -240,7 +242,9 @@ This serves to keep the tree balanced and simplify the implementation. As we
 assume hash collisions do not happen, it does not change any other
 properties of the system
 
-**Name absence proofs**: If a requested name is not in the tree, the server
+## Name absence proofs
+
+If a requested name is not in the tree, the server
 can prove its absence by returning the name-identity pairs right before and
 right after the missing name, as defined by the lexicographical order of the
 dictionary keys, along with the associated Merkle hash paths. The client has to
@@ -357,7 +361,11 @@ mechanism.*
 
 ## Coherent caching
 
-TODO
+A continuously running incremental verifier will observe all changes to the
+directory. Therefore, if the verifier ever learns a name and its corresponding
+profile, it will also receive all future updates to it. Servicing a lookup for
+a name only requires having the branch of the Merkle tree that corresponds to
+that name, so an incomplete but up-to-date directory is sufficient to TODO
 
 # Implementation details
 
@@ -392,7 +400,27 @@ is implemented by the application and exposed to the library using a simple
 consensus library itself because the crash recovery procedure involves fairly
 complicated queries to the consensus-specific state.
 
-TODO: invariants of round states. Recovery protocol. Dependencies between rounds.
+We sought to preserve the semantic separation between rounds in the
+implementation by making each round be managed by its own thread and control
+structures, but in order to simplify the crash recovery procedure, we added an
+explicit dependency between adjacent rounds. If a server has not seen all other
+servers' signatures for the shared state at the end of round $i$, it is not
+allowed to push (encrypted) requests to rounds after $i+1$. Therefore, if
+a server has published its final signature for round $i-1$ but not $i$, it must
+have finished processing rounds $\le i-2$ and does not need to do anything for
+rounds $\ge i+2$: there can be at most $3$ rounds in progress at the same time.
+The code also makes use of similar constraints implied by this rule and the
+explicit requirements of the protocol to bound the window during which each type
+of message can arrive from another correct server during one round.
+
+When a server crashes, it loses its in-memory state. To have an as complete overview of the exact behavior of other servers, our implementation stores all received messages on disk. This requirement could be loosened in a performance-oriented implementation, but it is absolutely critical so synchronize the following pieces of information to disk before acting upon them:
+
+- The symmetric key used for pushed requests
+- Whether a commitment has been made
+- Any requests pushed or committed to
+- The acknowledged commitments' singatures
+
+Currently, the in-memory data structures are reconstructed after a crash by reinterpreting the stored messages and using the saved encryption key instead of generating a new one. This approach is very robust and allows for relatively straightforward code, but it depends on having a full log af all messages during the last 3 rounds. Synchronously writing these messages to disk is the performance bottleneck of the current implementation.
 
 ## Persistent Merkle radix tree
 
