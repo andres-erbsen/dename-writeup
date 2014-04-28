@@ -1,5 +1,5 @@
 TEX=xelatex
-BIBER?=/usr/local/bin/biber
+BIBER?=biber
 
 dename.pdf: layout.tex content.tex build/layout.bbl
 	mkdir -p ./build
