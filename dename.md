@@ -145,12 +145,12 @@ the corresponding secret key has been lost, we also allow expiration:
     $T_e$ rounds, the profile is automatically deleted.
 
 \begin{table}
-\caption{\texttt{dename} directory schema}
 \begin{tabular}{@{} l l l l @{}}
 \small name & \small pubkey & \small profile & \small last change \\ \hline
 \small alice & $pk_a$ & $\text{\texttt{22:}}pk_\texttt{ssh}\text{\texttt{,443:}} pk_\text{x509}$ & \small 2014-04-10 \\
 \small bob & $pk_b$ & \texttt{25:bob@example.com} & \small 2013-09-12 \\ \hline
 \end{tabular}
+\caption{\texttt{dename} directory schema}
 \end{table}
 
 This requires users to regularly confirm that they still use that
