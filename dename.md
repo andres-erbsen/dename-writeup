@@ -57,7 +57,7 @@ caching of lookup results.
 
 # Maintaining consensus
 
-\begin{figure}
+\begin{figure}[hbt]
 \begin{msc}
 msc {
   hscale = "0.65",
@@ -99,7 +99,7 @@ it received into one message. Furthermore, as just the equality of the sets of
 announcements received by different servers is important (not the actual
 contents), we can sign a cryptographic hash $h(\Delta_1 \parallel \ldots \parallel \Delta_n)$ of all received announcements in an
 acknowledgment instead of the announcements themselves. The verified broadcast
-protocol can be seen in figure \ref{bcast}[hbt].
+protocol can be seen in figure \ref{bcast}.
 
 If two honest servers transition to a new state as a result of a round, they transition to the same state:
 \begin{tabular}{c r}
