@@ -12,7 +12,7 @@ Many applications rely on some form of directory service for connecting
 human-meaningful user identifiers (names) with application data associated with
 that user. When trying to provide security, the lack of a sufficiently trusted
 directory can easily become bottleneck: compromising any one certificate
-authority of attacker's choice breaks anything that relies
+authority of an attacker's choice breaks anything that relies
 certificate-authority-based public key infrastructure
 [@EllisonSchneierPKI][@SchneierVerisignHacked]; a breach of the Kerberos domain
 controller would result in a total compromise of the security domain. For this
@@ -24,7 +24,7 @@ error, especially if the users in question are not online at the same
 time[@Johnny2008]. Recently, better ways to maintain a user directory have been
 discovered, such as [@SwartzSquareZoooko], [@CertificateTransparancy] and
 NameCoin. However, all of those rely on economic feedback loops for security,
-and the cost is passed on to the users. We present `dename` -- a distributed
+and the cost is passed on to the users. We present `dename` -- an efficient distributed
 user directory service that works under the assumption that any one of the
 servers is secure.
 \endabstract
@@ -79,7 +79,7 @@ msc {
 \label{bcast}
 \end{figure}
 
-Changes to the user directory happen in discrete rounds: with some regularity
+Changes to the user directory happen in discrete rounds: at regular time intervals
 (currently every 3 seconds) the servers propose changes and apply them in
 lockstep. We use a verified broadcast primitive (described below) to ensure that
 all servers receive the same set of requested changes and the algorithm for
@@ -93,11 +93,11 @@ learns what the announcer has to say and can be sure that others heard the same
 thing. In computer networks allowing only point-to-point communication we can
 emulate this using a two-phase protocol: first the announcer broadcasts the
 message, then every server broadcasts an acknowledgment of what they received
-from the announcer. In `dename`, all servers announce exactly one set of changes
+from the announcer. In `dename`, all $n$ servers announce exactly one set of changes $\Delta_1 \ldots \Delta_n$
 during each round, so we can group each server's acknowledgments of all messages
 it received into one message. Furthermore, as just the equality of the sets of
-announcements received by diffedename.pdfrent servers is important (not the actual
-contents), we can use a cryptographic hash of all received announcements in an
+announcements received by different servers is important (not the actual
+contents), we can sign a cryptographic hash $h(\Delta_1 \parallel \ldots \parallel \Delta_n)$ of all received announcements in an
 acknowledgment instead of the announcements themselves. The verified broadcast
 protocol can be seen in figure \ref{bcast}[hbt].
 
@@ -109,7 +109,7 @@ apply(state, inputs of A) = apply(state, inputs of B)\\
 \end{tabular}
 
 In the description above, all messages are assumed to be authenticated. If one
-server was able to impersonate another, it could fool it into thinking that a
+server was able to impersonate another, it could fool other servers into thinking that a
 different set of changes has been announced. We use digital signatures for
 authentication because unlike faster symmetric authentication mechanisms,
 signatures can be used to construct an audit trail in case one of the servers
@@ -166,8 +166,7 @@ However, a malicious server could observe the announcements other servers make
 and deliberately introduce requests that conflict with a particular user's
 requests. To prevent this, the requests are hashed before they are broadcast
 using the verified broadcast protocol and actual requests are only revealed
-after every server has announced the hash of their proposed changes. Because of
-this, all changes a server proposes must be independent of the ones proposed by
+after every server has announced the hash of their proposed changes. Therefore, all changes a server proposes must be independent of the ones proposed by
 other servers because it only gets to observe the other proposals after
 broadcasting its own. To spread out network load, the current implementation
 actually pushes encrypted requests to other servers before having received
@@ -308,8 +307,7 @@ central point of compromise, but the only alternative we know is to have the
 evolution of the directory state determined by the entities that score highest
 by some arbitrary metric, such as the hashing power they control as in BitCoin and
 NameCoin. To mitigate this weakness, we provide an additional accountability
-mechanism: everyone is able to observe how the state of the directory is
-changed by the central servers, detect deviations from the set rules and, in
+mechanism: everyone can observe how the central servers change the state of the directory, detect deviations from the rules and, in
 case of invalid changes being applied, have proof of wrongdoing on the servers'
 part. We describe a *verifier* design that is significantly simpler (and
 therefore more likely to be implemented correctly) than the servers themselves.
@@ -474,8 +472,7 @@ wrapper scripts are 2 lines each.
 Pond requires each pair of users to establish a shared secret before they can
 use Pond to communicate with each other. The Pond User Guide gives a detailed
 explanation of several acceptable ways that may be used to establish a shared
-secret, but despite the presence of instructions, Pond is mainly intended to be
-used by "the discerning", just anybody. We believe that exchanging public keys
+secret, but despite the presence of instructions, using Pond requires effort; it is designed for users with a strong commitment to privacy. We believe that exchanging public keys
 between contacts is the limiting factor of Pond's usability. Our variant of Pond
 includes the necessary user interface for associating a Pond account with
 a `dename` profile and adding contacts using their `dename` names instead of
