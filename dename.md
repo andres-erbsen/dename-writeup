@@ -40,22 +40,21 @@ profile are digitally signed by that user, thus preventing any other
 party (including malicious servers) from modifying it. The discussion of
 the operation of this system is organized as follows: first, we describe
 how the servers communicate with each other to apply changes to the
-directory while ensuring that they end up with identical results. In
-general, this is the problem of replicating a state machine in the
-presence of malicious faults, but our solution is significantly simpler
-than the previous because it requires all parties to participate in
-order to make progress. Second, we describe the procedure of looking up
-users' profiles. We start with a trivial but inefficient protocol and
-end up storing the directory in a Merkle-hashed radix tree and serving
-its branches. We argue that if a lookup succeeds then the result must
-have been accepted by all servers. Third, we tackle the issue of
-freshness, that is, we provide a system for ensuring that the result
+directory while ensuring that they end up with identical results. This is
+similar to the problem of replicating a state machine in the presence of
+malicious faults, but the case we tackle is simpler: we give up being able to
+tolerate stopping failures by requiring all parties to participate. Second, we
+describe the procedure of looking up users' profiles. We start with a trivial
+but inefficient protocol and end up storing the directory in a Merkle-hashed
+radix tree and serving its branches. We argue that if a lookup succeeds then
+the result must have been accepted by all servers. Third, we tackle the issue
+of freshness, that is, we provide a system for ensuring that the result
 represents the most up-to-date state of the system. Fourth, we show how
-independent verifiers can be added to this system in the spirit of
-Certificate Transparency[@CertificateTransparancy] and VerSum[@VerSum].
-Starting from the Merkle tree data structure described previously this
-addition is relatively straightforward and, as a side effect, enables
-efficient coherent caching of lookup results.
+independent verifiers can be added to this system in the spirit of Certificate
+Transparency[@CertificateTransparancy] and VerSum[@VerSum]. Starting from the
+Merkle tree data structure described previously this addition is relatively
+straightforward and, as a side effect, enables efficient coherent caching of
+lookup results.
 
 Maintaining consensus
 =====================
