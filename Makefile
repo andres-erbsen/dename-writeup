@@ -2,7 +2,7 @@ TEX=xelatex
 BIBER?=biber
 
 dename.pdf: layout.tex content.tex build/layout.bbl
-	mkdir -p ./build
+	mkdir -p ./build/msc
 	$(TEX) --shell-escape -output-directory=build layout.tex
 	cp build/layout.pdf dename.pdf
 

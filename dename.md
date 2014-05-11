@@ -10,13 +10,13 @@ adoption using simple and widely understood mechanisms.}\
 Many applications rely on some form of directory service for connecting
 human-meaningful user identifiers (names) with application data
 associated with that user. When trying to provide security, the lack of
-a sufficiently trusted directory can easily become bottleneck:
+a sufficiently trusted directory can easily become a bottleneck:
 compromising any one certificate authority of an attacker's choice
-breaks anything that relies certificate-authority-based public key
+breaks anything that relies on certificate-authority-based public key
 infrastructure [@EllisonSchneierPKI][@SchneierVerisignHacked]; a breach
 of the Kerberos domain controller would result in a total compromise of
 the security domain. For this reason, security-critical applications try
-to work around the need for a dircetory service; for example, `ssh`,
+to work around the need for a directory service; for example, `ssh`,
 OpenPGP, OTR and Pond have users manually communicate the critical bits
 of authenticating information to each other. This approach is
 tedious[@arsTechnicaGGreenwaldPGP] and prone to human error, especially
@@ -26,7 +26,7 @@ better ways to maintain a user directory have been discovered, such as
 all of those rely on economic feedback loops for security, and the cost
 is passed on to the users. We present `dename` -- an efficient
 distributed user directory service that works under the assumption that
-any one of the servers is secure. \endabstract
+at least one of the servers is secure. \endabstract
 
 Overview
 ========
@@ -34,7 +34,7 @@ Overview
 In essence, `dename` works by having a group of predetermined but
 independently administered servers maintain identical copies of the user
 directory and collectively vouch for the correctness of the directory's
-contents. Any one server's honesty is sufficient for a unanimous result
+contents. At least one server's honesty is sufficient for a unanimous result
 to be correct. We have the servers require that all updates to a user's
 profile are digitally signed by that user, thus preventing any other
 party (including malicious servers) from modifying it. The discussion of
@@ -45,14 +45,14 @@ similar to the problem of replicating a state machine in the presence of
 malicious faults, but the case we tackle is simpler: we give up being able to
 tolerate stopping failures by requiring all parties to participate. Second, we
 describe the procedure of looking up users' profiles. We start with a trivial
-but inefficient protocol and end up storing the directory in a Merkle-hashed
-radix tree and serving its branches. We argue that if a lookup succeeds then
+but inefficient protocol and end up storing the directory in a Merkle hashed
+radix tree and serving its branches. We argue that if a lookup succeeds, then
 the result must have been accepted by all servers. Third, we tackle the issue
 of freshness, that is, we provide a system for ensuring that the result
 represents the most up-to-date state of the system. Fourth, we show how
 independent verifiers can be added to this system in the spirit of Certificate
 Transparency[@CertificateTransparancy] and VerSum[@VerSum]. Starting from the
-Merkle tree data structure described previously this addition is relatively
+Merkle tree data structure described previously, this addition is relatively
 straightforward and, as a side effect, enables efficient coherent caching of
 lookup results.
 
@@ -60,30 +60,28 @@ Maintaining consensus
 =====================
 
 Changes to the user directory happen in discrete rounds: at regular time
-intervals (currently every 3 seconds) the servers propose changes and
+intervals (currently every $\Delta t = 3$ seconds) the servers propose changes and
 apply them in lockstep. We use a verified broadcast primitive (described
 below) to ensure that all servers receive the same set of requested
-changes and the algorithm for handling them is deterministic.
-Additionally, we describe some malicious behavior servers could engage
-in that would not directly violate the security claim but is
-nevertheless undesirable and modify the protocol to counteract that
-behavior.
+changes, and the algorithm for handling them is deterministic.
+Additionally, we describe some malicious behavior that servers could engage in
+which would not directly violate the security claim, but is nevertheless
+undesirable, and modify the protocol to counteract that behavior.
 
 The physical analogy of verified broadcast is a public announcement:
 everybody learns what the announcer has to say and can be sure that
 others heard the same thing. In computer networks allowing only
-point-to-point communication we can emulate this using a two-phase
+point-to-point communication, we can emulate this using a two-phase
 protocol: first the announcer broadcasts the message, then every server
 broadcasts an acknowledgment of what they received from the announcer.
 In `dename`, all $n$ servers announce exactly one set of changes
 $\Delta_1 \ldots \Delta_n$ during each round, so we can group each
 server's acknowledgments of all messages it received into one message.
-Furthermore, as just the equality of the sets of announcements received
-by different servers is important (not the actual contents), we can sign
-a cryptographic hash $h(\Delta_1 \parallel \ldots \parallel \Delta_n)$
-of all received announcements in an acknowledgment instead of the
-announcements themselves. The verified broadcast protocol can be seen in
-figure \ref{bcast}.
+Furthermore, as only the equality of the sets of announcements received
+by different servers is important rather than the actual contents, we can sign
+a cryptographic hash $h(\Delta_1 \parallel \ldots \parallel \Delta_n)$ of all
+received announcements in an acknowledgment instead of the announcements
+themselves. The verified broadcast protocol can be seen in figure \ref{bcast}. <!-- FIXME: check that this says "figure 1" -->
 
 \begin{figure}[hbt]
 \label{bcast}
@@ -115,29 +113,29 @@ inputs of A = inputs of B\\
 apply(state, inputs of A) = apply(state, inputs of B)\\
 \end{tabular}
 In the description above, all messages are assumed to be authenticated.
-If one server was able to impersonate another, it could fool other
+If one server were able to impersonate another, it could fool other
 servers into thinking that a different set of changes has been
 announced. We use digital signatures for authentication because unlike
 faster symmetric authentication mechanisms, signatures can be used to
 construct an audit trail in case one of the servers sends out different
 announcements or acknowledgments during the same round.
 
-The semantics of what kind of changes are allowed are in some sense a
-detail, but they are important. For example, if one user could edit
-another one's profile without their consent, the directory would be of
-little use. Out implementation sets the following constraints:
+The semantics of what kind of changes are allowed are in some sense a detail,
+but they are important. For example, if one user were able to edit another's
+profile without their consent, the directory would be of little use. Out
+implementation sets the following constraints:
 
 1.  All proposed profiles must contain a public key that can be used to
-    verify digital signatures. To enforce this, all requests that are
-    not signed with that key are denied.
+    verify digital signatures. <!-- To enforce this, all requests that are
+    not signed with that key are denied. -->
 2.  If a name is not currently in use (does not map to a profile), all
     requests to make it map to a valid profile are accepted.
-3.  If a name already maps to a profile, requests to change it are only
-    accepted if they are also signed with the current key in addition to
-    the new one.
+3.  If a name already maps to a profile, requests to change the mapping are only
+accepted if they are also signed with the key in the current profile in addition
+to that in the new one.
 
-These rules ensure that if an user keeps their signing key secret,
-nobody else can modify their profile. To free up names that for which
+These rules ensure that if a user keeps their signing key secret,
+nobody else can modify their profile. To free up names for which
 the corresponding secret key has been lost, we also allow expiration:
 
 4.  If the profile a name maps to has not been modified in the last
@@ -152,15 +150,14 @@ the corresponding secret key has been lost, we also allow expiration:
 \caption{\texttt{dename} directory schema}
 \end{table}
 
-This requires users to regularly confirm that they still use that
-profile by requesting a nil change to it. The possibility of a profile
-expiring complicates the situation because somebody else may later claim
-the name, but the old profile still fits the criteria of being accepted
-by all servers -- this is the main motivation for freshness assertions
-(section \ref{freshness}). It is, of course, possible to have names not
-expire, but doing so would seriously hamper the usability of the system
-when the space due to more and more names pointing to profiles with lost
-keys.
+This requires users to regularly confirm that they still use that profile by
+requesting a null change to it. The possibility of name-profile mapping
+expiration complicates the situation because somebody other than the original
+owner may later claim the used name, while the old profile continues to fit the
+criteria of being accepted by all servers -- this is the main motivation for
+freshness assertions (section \ref{freshness}). It is, of course, possible not
+to have names expire, but doing so would seriously hamper the usability of the
+system owing to the proliferation of names that map to lost keys.
 
 The described rules of changing the directory are sensitive to the order
 in which changes are processed: if two servers propose two valid
@@ -175,12 +172,12 @@ are handled.
 However, a malicious server could observe the announcements other
 servers make and deliberately introduce requests that conflict with a
 particular user's requests. To prevent this, the requests are hashed
-before they are broadcast using the verified broadcast protocol and
+before they are broadcast using the verified broadcast protocol, and
 actual requests are only revealed after every server has announced the
 hash of their proposed changes. Therefore, all changes a server proposes
 must be independent of the ones proposed by other servers because it
 only gets to observe the other proposals after broadcasting its own. To
-spread out network load, the current implementation actually pushes
+spread out network load, the current implementation actually sends
 encrypted requests to other servers before having received hashes from
 them and reveals the encryption key to reveal the requests. The final
 protocol is displayed in figure \ref{consensusProtocol}.
@@ -276,95 +273,98 @@ Freshness
 =========
 
 \label{freshness} The protocol as described guarantees that if a client
-looks up a profile for a name, this assignment must have been approved
-by all servers at some point in time. However, nothing so far prevents
-it from being superseded by a later change to the same profile. In this
-section we describe two mechanisms for ensuring that the lookup result
-is *fresh* (not superseded). The more efficient one requires the client
-and the servers to have a reasonably accurate clock; without that there
-is an option to get a confirmation of freshness from each server
-individually.
+looks up a profile, the mapping between a name and this profile must
+have been approved by all servers at some point in time. However,
+nothing so far prevents this mapping from being superseded by a later
+change to the same profile. In this section we describe two mechanisms
+for ensuring that the lookup result is *fresh* (not superseded). The
+more efficient one requires the client and the servers to have
+a reasonably accurate clock; without that there is an option to get
+a confirmation of freshness from each server individually.
+
+<!-- TODO: replace epsilon! -->
 
 Each server will regularly (every $\Delta t$ seconds) sign a *freshness
 assertion* with the contents "As of time $t$, the most recent root hash
 is $H$". The most recent assertion from each server will be distributed
 together with the root hash. Before accepting a root hash as valid, the
 client will verify the signatures on the freshness assertions and check
-that the timestamps are withing $\Delta t+\epsilon$ of its current time,
-where $\epsilon$ accounts for network latency and uncertainty of the
-current time value seen by the client.
+that the timestamps are within $\Delta t+\epsilon$ of its current time.
+This accounts for the client's clock being at most $\epsilon$ ahead and
+it taking up to $\Delta t$ to get the change timestamped by a server.
 
-Requiring all timestamps to match can be an availability problem: if any
-of the servers is down, all lookups will fail. However, this requirement
-can be easily relaxed: for any $f\ge0$ of the client's choice, it can
-check that at most $f$ of the timestamps are outside the allowed range
+Requiring that all timestamps be up to date <!-- "up to date" sounds
+funny --> causes an availability problem: if any one of the servers is
+down, all lookups will fail. However, this requirement can be easily
+relaxed: for any $f\ge0$ of the client's choice, the client can check
+that no more than $f$ of the timestamps are outside the allowed range
 and thus continue operating even when $f$ servers are down.
 
 Note that unlike in Spanner[@spanner], the time uncertainty can be quite
-large for the system to operate correctly. Even though future lookups by
-a machine that has its clock within $\epsilon$ of all servers' clocks
-are only guaranteed to observe that happened more than
-$\Delta t+2\epsilon$ ago, we do not see it as a problem because we
-expect security-critical changes to profiles to be rare and therefore
-waiting after them to be acceptable. Proof of the $\Delta t+2\epsilon$
-bound: it will take at most $\Delta t$ for the new mapping to be
-timestamped by the servers, the client will accept any mapping bearing a
-timstamp less than $\epsilon$ before its own observed time (because its
-clock may be at most $\epsilon$ ahead), but its clock may also be at
-most $\epsilon$ behind of the server time, in which case it may end up
-accepting a mapping that was timestamped $2\epsilon$ ago.
+large (on the order of minutes) even in a correctly operating system. In
+particular, the client will accept any mapping bearing a timestamp less
+than $\Delta t + \epsilon$ before its own observed time, but its clock
+may also be at most $\epsilon$ behind of the server time, in which case
+it may accept a mapping that was timestamped $2\epsilon$ ago. All
+changes made more than $\Delta t + 2\epsilon$ ago must be reflected in
+the mapping. However, we do not see it as a problem because we expect
+security-critical profile changes to be rare and thus consider waiting
+for them acceptable. Furthermore, if strict security guarantees are not
+required and a server can be trusted to return the latest mapping --
+which is at most $\Delta t$ old -- we can assume that all changes made
+at least $\Delta t$ (rather than $\Delta t + 2 \epsilon$) ago are
+observed.
 
-In case a reasonably accurate clock source is not available, a client
-can still look up the current profile for an username by contacting a
-set of servers such that at least on of them can be assumed to be honest
-and requiring an unanimous answer.
+If a reasonably accurate clock source is not available, a client
+can still look up the current profile for a username by contacting a
+set of servers, at least one of which can be considered honest,
+and requiring a unanimous answer.
 
 Verifiers
 =========
 
 We view having a fixed set of servers as a necessary evil: it is
 inherently a central point of compromise, but the only alternative we
-know is to have the evolution of the directory state determined by the
+know is having the evolution of the directory state determined by
 entities that score highest by some arbitrary metric, such as the
-hashing power they control as in BitCoin and NameCoin. To mitigate this
+hashing power they control, as in BitCoin and NameCoin. To mitigate this
 weakness, we provide an additional accountability mechanism: everyone
 can observe how the central servers change the state of the directory,
 detect deviations from the rules and, in case of invalid changes being
 applied, have proof of wrongdoing on the servers' part. We describe a
 *verifier* design that is significantly simpler (and therefore more
 likely to be implemented correctly) than the servers themselves. We also
-show how to leverage the Merkle tree structure already used for lookups
+show how to utilize the Merkle tree structure already used for lookups
 to audit the changes made during an interval of time without ever having
 to download the whole directory.
 
 The simple offline verifier
 ---------------------------
 
-The purpose of the simple verifier design is to check that the core
-servers have been enforcing the semantics of the directory. The design
-we describe here does not aim to provide optimal throughput or
-responsiveness, instead we focus on keeping the implementation as simple
-as possible with the hope that it can therefore be widely audited and
-gain public confidence.
+The purpose of the simple verifier design is to check that the core servers have
+been enforcing the rules of changing the directory. The design we describe here
+does not aim to provide optimal throughput or responsiveness, instead we focus
+on keeping the implementation as simple as possible with the hope that it can
+therefore be widely audited and gain public confidence.
 
 The program takes as input a range of rounds starting with the very
 first one (in the beginning of which the directory was empty) and for
-each round the ordered sequence of changes considered by the core
+each round the ordered sequence of changes applied by the core
 servers. It processes the change requests in order, validating each one
 against the current state of the directory and then updating the
 directory to reflect this change. At the end of each round, it prints
-out the current hash of the Merkle tree. To verify that some sequence of
+out the current hash of the Merkle tree. To verify that a sequence of
 observed root hashes corresponds to a consistent history of valid
 changes to the directory, one would download a copy of the purported
-changes applied to the directory from any one server and use the simple
-verifier to compute the root hashes for all past rounds. If all root
-observed hashes are present in the output of the simple verifier in the
-right order, the server must have adhered to the semantics of the
-directory.
+changes applied to the directory from any one server and then use the simple
+verifier to compute the root hashes for all past rounds. If all observed
+root hashes are present in the output of the simple verifier in the
+right order, the server must have adhered to the rules of the
+directory. <!-- this acutally means that the the current sequence is ok -->
 
 We implemented this verifier using 40 lines of readable python code and
 20 lines of `protobuf`[@protobuf] format specification. No custom
-libraries were used; an in-memory implementation of the Merkle-tree is
+libraries were used; an in-memory implementation of the Merkle tree is
 included in these 40 lines.
 
 Incremental verification
@@ -379,7 +379,7 @@ cost of downloading all past changes. Naively omitting the old changes
 from the inputs of the simple verifier would not yield a solution: it
 would have no way of determining whether a name has been already
 registered or not. Instead, the core servers will supply the verifiers
-with Merkle-tree proofs about the relevant directory state in addition
+with Merkle tree proofs about the relevant directory state in addition
 to the requested changes. Specifically, each request to transfer a name
 will be annotated with the old profile, its Merkle path and all siblings
 used to calculate the hashes for the new Merkle path. The verifier will
@@ -414,13 +414,13 @@ implementation is a compromise between performance and
 understandability. For example, independent tasks are done in parallel
 and in-process state is kept to eliminate redundant database accesses
 and server signature verifications, but client signatures are verified
-twice in some scenarios, batch signature verification is not used at all
+twice in some scenarios, batch signature verification is not used at all,
 and some invariants are enforced using expensive database byte array
-indexes even though doing it manually is possible and has shown better
+indices even though doing it manually is possible and has shown better
 performance. Nonetheless, a laptop with a `Core 2 Duo L9400` cpu and a
-`Corsair Force GT` SSD drive can handle 300 registrations per second,
+`Corsair Force GT` SSD drive can handle 300 profile changes per second,
 being just slightly disk-bound. This number may not seem high when
-compared to non-cryptographic databases, but 800 million registrations
+compared to non-cryptographic databases, but 750 million profile changes
 per month is unlikely to become a limiting factor in any realistic
 deployment scenario. Our implementation also detects and reports various
 kinds of deviations from the specified protocol by other servers even if
@@ -521,22 +521,22 @@ to establish a shared secret, but despite the presence of instructions,
 using Pond requires effort; it is designed for users with a strong
 commitment to privacy. We believe that exchanging public keys between
 contacts is the limiting factor of Pond's usability. Our variant of Pond
-includes the necessary user interface for associating a Pond account
+includes a user interface for associating a Pond account
 with a `dename` profile and adding contacts using their `dename` names
-instead of shared secrets, thus enabling an user experience similar to
+instead of shared secrets, thus enabling a user experience similar to
 email.
 
-We can leverage `dename` to improve the usability of `ssh` in two
+We can utilize `dename` to improve the usability of `ssh` in two
 separate ways. As with Pond, we can use `dename` to look up users'
-public keys. As `ssh` reads the keys that an user is allowed to log in
-with from a file, we can simply get the newly authorized user's public
+public keys. As `ssh` reads the keys with which a user is allowed to
+log in from a file, we can simply get the newly authorized user's public
 key from `dename` and append it to that file. A less obvious but
-arguably more useful enhancement is to verify ssh *host* keys against
-the maintainer's `dename` profile. When connecting to a machine the
+arguably more useful enhancement is the verification of `ssh` *host* keys against
+the maintainer's `dename` profile. When connecting to a machine for the
 first time, `ssh` usually presents the user with the server's public key
 hash and asks them to check its authenticity. Instead, if we know the
 server maintainer's `dename` name, we can preemptively look up the
-corresponding profile and get the host key from there, without having to
+corresponding profile and get the host key from there without having to
 prompt the user at all. As in our experience many users tend to neglect
 the `ssh` host key validation step, this modification will not only
 increase convenience but also improve security.
