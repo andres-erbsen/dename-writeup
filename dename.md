@@ -504,7 +504,7 @@ by reinterpreting the stored messages and using the saved encryption key
 instead of generating a new one. This approach is very robust and allows
 for relatively straightforward code, but it depends on having a full log
 of all messages received during the last 3 rounds. Synchronously writing
-these messages to disk is the performance bottleneck of the current
+these messages to disk is a performance bottleneck of the current
 implementation.
 
 Cryptography
