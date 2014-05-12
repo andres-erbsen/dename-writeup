@@ -595,4 +595,4 @@ admitted. While not requiring the approval of all servers would obviously weaken
 the security guarantee, we believe that this loss would be offset by the
 security gained from having a more diverse set of parties operating the servers.
 We are not aware of any state machine replication protocol that could be used to
-implement this
+implement this.
