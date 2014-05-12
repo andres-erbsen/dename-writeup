@@ -29,8 +29,7 @@ is passed on to the users. We present `dename` -- an efficient
 distributed user directory service that works under the assumption that
 at least one of the servers is secure. \endabstract
 
-Overview
-========
+\section*{Overview}
 
 In essence, `dename` works by having a group of predetermined but
 independently administered servers maintain identical copies of the user
@@ -64,9 +63,12 @@ freshness, that is, we provide a system for ensuring that the result
 represents the most up-to-date state of the system. Fourth, we show how
 independent verifiers can be added to this system in the spirit of
 Certificate Transparency[@CertificateTransparancy]. Starting from the
-Merkle tree data structure described previously, this addition is
-relatively straightforward and, as a side effect, enables efficient
-coherent caching of lookup results.
+Merkle tree data structure described previously, this addition is relatively
+straightforward and, as a side effect, enables efficient coherent caching of
+lookup results. Finally, we describe the specifics of our implementation of the
+protocol described in this paper and evaluate the impact of its use on the
+usability of two security-critical applications: asynchronous messaging and
+remote server administration.
 
 Maintaining consensus
 =====================
@@ -582,8 +584,7 @@ prompt the user at all. As in our experience many users tend to neglect
 the `ssh` host key validation step, this modification will not only
 increase convenience but also improve security.
 
-Further work
-============
+\section*{Further work}
 
 First and foremost, `dename` does not deal with key revocation. While a user can
 make their name point to a different key, there is no guarantee that other users
