@@ -19,8 +19,9 @@ the security domain. For this reason, security-critical applications try
 to work around the need for a directory service; for example, `ssh`,
 OpenPGP, OTR and Pond have users manually communicate the critical bits
 of authenticating information to each other. This approach is
-tedious[@arsTechnicaGGreenwaldPGP] and prone to human error, especially
-if the users are not online at the same time[@Johnny2008]. Recently,
+tedious and prone to human error, especially
+if the users are not online at the same time[@Johnny1999]
+[@Johnny2008][@arsTechnicaGGreenwaldPGP]. Recently,
 better ways to maintain a user directory have been discovered, such as
 [@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin. However,
 all of those rely on economic feedback loops for security, and the cost
@@ -555,3 +556,48 @@ corresponding profile and get the host key from there without having to
 prompt the user at all. As in our experience many users tend to neglect
 the `ssh` host key validation step, this modification will not only
 increase convenience but also improve security.
+
+Conclusions
+===========
+
+A usability evaluation of PGP[@Johnny1999] pointed out the need for a simpler
+and smaller conceptual model of security than manual handling of public keys as
+used in PGP. Pond and OTR do not require users to learn fundamentally new ways
+of reasoning about security, but the simplicity comes at the cost of smoothness
+<!-- TODO: better word --> of extensive use: while proficient OpenPGP users can
+use the web of trust to verify each other's public keys non-interactively, Pond
+and OTR require each pair of users to communicate with each other through some
+trusted channel. Furthermore, while substantially simpler that PGP's, the model
+used by Pond and OTR is still alien to most users -- we are not aware of any
+widely adopted programs that require users to establish shared secrets. Using
+`dename`, we can get the best of both worlds: assuming the user trusts that one
+of the `dename` servers will treat them honestly, the only piece of information
+a user needs to give to the software about the user they wish to communicate
+with is the recipient's hand-picked username. All security-specific details can
+be handled behind the scenes. This model is even simpler than Pond's and OTR's,
+and is likely to be already familiar to a large fraction of the users, for
+example from Email or Twitter.
+
+Further work
+------------
+
+First and foremost, `dename` does not deal with key revocation. While a user can
+make their name point to a different key, there is no guarantee that other users
+who have already downloaded to old key will stop using it. As the appropriate
+times for revocation-checking are application-dependent, this needs to be
+tackled separately. Interacting with usernames can also be surprisingly tricky
+in an adversarial environment: typosquatting and homograph attacks are not
+prevented by the `dename` infrastructure, doing so is another responsibility of
+the application writer.
+
+We have shown that it is practical to maintain an exact copy of the user
+directory using consumer grade hardware. For a large-scale deployment,
+better-optimized implementations are probably desirable. In case of a single
+machine being unable to handle the churn of updates, the directory can be easily
+sharded by the hash of the name. Similarly, a single `dename` server can be implemented using a replicated state machine to improve availability.
+Furthermore, if it was possible to configure the `dename` servers to
+make progress even if some number of them are not available, a larger set of
+servers could be admitted. While not requiring the approval of all servers would
+obviously weaken the security guarantee, we believe that this loss would be
+offset by the security gained from having a more diverse set of parties
+operating the servers.
