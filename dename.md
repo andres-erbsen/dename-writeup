@@ -35,27 +35,38 @@ Overview
 In essence, `dename` works by having a group of predetermined but
 independently administered servers maintain identical copies of the user
 directory and collectively vouch for the correctness of the directory's
-contents. At least one server's honesty is sufficient for a unanimous result
-to be correct. We have the servers require that all updates to a user's
-profile are digitally signed by that user, thus preventing any other
-party (including malicious servers) from modifying it. The discussion of
-the operation of this system is organized as follows: first, we describe
-how the servers communicate with each other to apply changes to the
-directory while ensuring that they end up with identical results. This is
-similar to the problem of replicating a state machine in the presence of
-malicious faults, but the case we tackle is simpler: we give up being able to
-tolerate stopping failures by requiring all parties to participate. Second, we
-describe the procedure of looking up users' profiles. We start with a trivial
-but inefficient protocol and end up storing the directory in a Merkle hashed
-radix tree and serving its branches. We argue that if a lookup succeeds, then
-the result must have been accepted by all servers. Third, we tackle the issue
-of freshness, that is, we provide a system for ensuring that the result
+contents. A client can contact any of these servers and any additional
+verifiers it might wish to consult to look up a profile and get a proof
+that all of them agree to the mapping the client observed. At least one
+server's honesty is sufficient for a unanimous result to be correct. We
+have the servers require that all updates to a user's profile are
+digitally signed by that user, thus preventing any other party
+(including malicious servers) from modifying it. There is a subtle
+difference between our model and the one of DNS and the x509 PKI:
+`dename` does not try to encode an existing mapping between names and
+entities, it merely allows any entity to register a name. This
+clean-slate approach allows us to define strict rules which all
+modifications of the name-profile mapping have to adhere to, and we show
+how third parties can verify that the core servers enforce these rules.
+
+The discussion of the operation of this system is organized as follows:
+first, we describe how the servers communicate with each other to apply
+changes to the directory while ensuring that they end up with identical
+results. This is similar to the problem of replicating a state machine
+in the presence of malicious faults, but the case we tackle is simpler:
+we give up being able to tolerate stopping failures by requiring all
+parties to participate. Second, we describe the procedure of looking up
+users' profiles. We start with a trivial but inefficient protocol and
+end up storing the directory in a Merkle hashed radix tree and serving
+its branches. We argue that if a lookup succeeds, then the result must
+have been accepted by all servers. Third, we tackle the issue of
+freshness, that is, we provide a system for ensuring that the result
 represents the most up-to-date state of the system. Fourth, we show how
-independent verifiers can be added to this system in the spirit of Certificate
-Transparency[@CertificateTransparancy] and VerSum[@VerSum]. Starting from the
-Merkle tree data structure described previously, this addition is relatively
-straightforward and, as a side effect, enables efficient coherent caching of
-lookup results.
+independent verifiers can be added to this system in the spirit of
+Certificate Transparency[@CertificateTransparancy]. Starting from the
+Merkle tree data structure described previously, this addition is
+relatively straightforward and, as a side effect, enables efficient
+coherent caching of lookup results.
 
 Maintaining consensus
 =====================
@@ -167,7 +178,8 @@ in which changes are processed: if two servers propose two valid
 requests to modify the same name in different ways, it is crucial to
 ensure that all servers choose to apply them in the same order because
 applying one of them may make the other invalid. We use a standard
-protocol akin to [@XXXsharedRandomness] to establish shared randomness
+protocol commit-and-combine protocol <!-- TODO: cite one us of this! -->
+to establish shared randomness
 between servers and use it to pick a random permutation of the list of
 servers that determines the order in which the requests they introduced
 are handled.
@@ -521,21 +533,21 @@ Evaluation
 
 A usability evaluation of PGP[@Johnny1999] pointed out the need for a simpler
 and smaller conceptual model of security than manual handling of public keys as
-used in PGP. Pond[@Pond] and OTR do not require users to learn fundamentally new ways
-of reasoning about security, but the simplicity comes at the cost of smoothness
-<!-- TODO: better word --> of extensive use: while proficient OpenPGP users can
-use the web of trust to verify each other's public keys non-interactively, Pond
-and OTR require each pair of users to communicate with each other through some
-trusted channel. Furthermore, while substantially simpler that PGP's, the model
-used by Pond and OTR is still alien to most users -- we are not aware of any
-widely adopted programs that require users to establish shared secrets. Using
-`dename`, we can get the best of both worlds: assuming the user trusts that one
-of the `dename` servers will treat them honestly, the only piece of information
-a user needs to give to the software about the user they wish to communicate
-with is the recipient's hand-picked username. All security-specific details can
-be handled behind the scenes. This model is even simpler than Pond's and OTR's,
-and is likely to be already familiar to a large fraction of the users, for
-example from Email or Twitter.
+used in PGP. Pond[@Pond] and OTR do not require users to learn fundamentally new
+ways of reasoning about security, but they do not scale as well to broader use:
+while proficient OpenPGP users can use the web of trust to verify each other's
+public keys non-interactively, Pond and OTR require each pair of users to
+communicate with each other through some trusted channel. Furthermore, while
+substantially simpler that PGP's, the model used by Pond and OTR is still alien
+to most users -- we are not aware of any widely adopted programs that require
+users to establish shared secrets. Using `dename`, we can get the best of both
+worlds: assuming the user trusts that one of the `dename` servers will treat
+them honestly, the only piece of information a user needs to give to the
+software about the user they wish to communicate with is the recipient's
+hand-picked username. All security-specific details can be handled behind the
+scenes. This model is even simpler than Pond's and OTR's, and is likely to be
+already familiar to a large fraction of the users, for example from Email or
+Twitter.
 
 To show that it is practical to replace manual public key distribution
 with `dename`, we integrated a `dename` client with the Pond
@@ -579,7 +591,7 @@ who have already downloaded to old key will stop using it. As the appropriate
 times for revocation-checking are application-dependent, this needs to be
 tackled separately. Interacting with usernames can also be surprisingly tricky
 in an adversarial environment: typosquatting and homograph attacks are not
-prevented by the `dename` infrastructure, doing so is another responsibility of
+prevented by the `dename` infrastructure; doing so is another responsibility of
 the application writer.
 
 We have shown that it is practical to maintain an exact copy of the user
