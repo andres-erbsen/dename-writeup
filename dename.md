@@ -59,14 +59,13 @@ lookup results.
 Maintaining consensus
 =====================
 
-Changes to the user directory happen in discrete rounds: at regular time
-intervals (currently every $\Delta t = 3$ seconds) the servers propose changes and
-apply them in lockstep. We use a verified broadcast primitive (described
-below) to ensure that all servers receive the same set of requested
-changes, and the algorithm for handling them is deterministic.
-Additionally, we describe some malicious behavior that servers could engage in
-which would not directly violate the security claim, but is nevertheless
-undesirable, and modify the protocol to counteract that behavior.
+Changes to the user directory happen in discrete rounds: each server proposes
+a set of changes and all servers apply them in lockstep. We use a verified
+broadcast primitive (described below) to ensure that all servers receive the
+same set of requested changes, and the algorithm for handling them is
+deterministic. Additionally, we describe some malicious behavior that servers
+could engage in which would not directly violate the security claim, but is
+nevertheless undesirable, and modify the protocol to counteract that behavior.
 
 The physical analogy of verified broadcast is a public announcement:
 everybody learns what the announcer has to say and can be sure that
@@ -81,10 +80,10 @@ Furthermore, as only the equality of the sets of announcements received
 by different servers is important rather than the actual contents, we can sign
 a cryptographic hash $h(\Delta_1 \parallel \ldots \parallel \Delta_n)$ of all
 received announcements in an acknowledgment instead of the announcements
-themselves. The verified broadcast protocol can be seen in figure \ref{bcast}. <!-- FIXME: check that this says "figure 1" -->
+themselves. The verified broadcast protocol can be seen in figure \ref{VerifiedBcast}. <!-- FIXME: check that this says "figure 1" -->
 
 \begin{figure}[hbt]
-\label{bcast}
+\label{VerifiedBcast}
 \begin{msc}
 msc {
   hscale = "0.65",
@@ -141,7 +140,10 @@ the corresponding secret key has been lost, we also allow expiration:
 4.  If the profile a name maps to has not been modified in the last
     $T_e$ rounds, the profile is automatically deleted.
 
+Table \ref{schematable} shows the fields stored by `dename` with example data. <!-- TODO: wording-->
+
 \begin{table}
+\label{schematable}
 \begin{tabular}{@{} l l l l @{}}
 \small name & \small pubkey & \small profile & \small last change \\ \hline
 \small alice & $pk_a$ & $\text{\texttt{22:}}pk_\texttt{ssh}\text{\texttt{,443:}} pk_\text{x509}$ & \small 2014-04-10 \\
@@ -222,14 +224,30 @@ directory from one server. If the hashes the servers reported are all
 equal to the hash of the downloaded directory, the directory must be
 correct. This scheme is slightly better, but still insufficient.
 
-What we need is mechanism to prove that a single name-profile pair is a
-part of a larger directory with the given hash without downloading the
+What we need is mechanism to prove that a single name-profile pair is
+a part of a larger directory with the given hash without downloading the
 whole directory. Assume that the directory is implemented as a binary
 prefix tree with profiles in the leaves. Now, every node in the tree is
-augmented with a hash of its children. If the hash function is collision
-resistant, each node uniquely determines the state of all names (and the
-respective profiles) that start with the prefix this node corresponds
-to. The root hash summarizes the whole directory.
+augmented with a hash of its children as shown in figure \ref{tree}. If
+the hash function is collision resistant, each node uniquely determines
+the state of all names (and the respective profiles) that start with the
+prefix this node corresponds to. The root hash summarizes the whole
+directory.
+
+\begin{figure}[hbt]
+\label{tree}
+\Tree[.\(h\left(\scriptstyle{}{h(a,P_a),\;h({\scriptscriptstyle{}h({h(b,P_b),\;h(c,P_c)}),\;h(d,P_d)})}\right)\)
+	  [.\(h(a,P_a)\) ]
+      [.\(h({\scriptstyle{}{h(\scriptscriptstyle{}{h(b,P_b),\;h(c,P_c)}),\;h(d,P_d)}})\)
+		[.\(h({\scriptstyle{}h(b,P_b),\;h(c,P_c)})\)
+			\(h(b,P_b)\)
+			\(h(c,P_c)\)
+		]
+		\(h(c,P_c)\)
+      ]
+]
+\caption{Merkle-hashed prefix tree of the following mapping: \{\(a\):\(P_a\), \(b\):\(P_b\)\, \(c\):\(P_c\), \(d\):\(P_d\)\} assuming $h(a)=\mathtt{0}_b{...}$, $h(b)=\mathtt{100}_b{...}$, $h(c)=\mathtt{101}_b{...}$ and \(h(d)={11}_b{...}\)}
+\end{figure}
 
 To prove that a name-profile pair is a part of a directory with a known
 root hash, a server supplies the client with the list of hashes stored
@@ -244,9 +262,6 @@ indeed maps to the given profile in the dictionary with the known root
 hash. As all servers vouched for the whole dictionary and we are
 assuming that at least one of them is honest, the profile must have been
 registered adhering to the requirements of this system.
-
-TODO: picture of Merkle tree, like in
-<http://comjnl.oxfordjournals.org/content/27/3/218.full.pdf>
 
 As an optimization, the servers can sign the root hash after each round
 and send the signature to all other servers. This way, a client only has
@@ -496,8 +511,8 @@ bits and existing adoption in real-world systems.
 -   `ed25519` for digital signatures. Fast signature verification and
     small signature and public key size are essential for the
     performance of `dename`. Unlike other common digital signature
-    schemes, `ed25519` supports even faster batch verification. -
-    `sha256` for collision-resistant hashing and entropy extraction.
+    schemes, `ed25519` supports even faster batch verification.
+-   `sha256` for collision-resistant hashing and entropy extraction.
     Widely used, fast enough.
 -   `salsa20poly1305` encryption for concealing messages from servers
     during the commitment phase of a round. Any authenticated encryption
