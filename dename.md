@@ -84,7 +84,6 @@ received announcements in an acknowledgment instead of the announcements
 themselves. The verified broadcast protocol can be seen in figure \ref{VerifiedBcast}. <!-- FIXME: check that this says "figure 1" -->
 
 \begin{figure}[hbt]
-\label{VerifiedBcast}
 \begin{msc}
 msc {
   hscale = "0.65",
@@ -103,6 +102,7 @@ msc {
 }
 \end{msc}
 \caption{Verified broadcast}
+\label{VerifiedBcast}
 \end{figure}
 
 If two honest servers transition to a new state as a result of a round,
@@ -144,13 +144,13 @@ the corresponding secret key has been lost, we also allow expiration:
 Table \ref{schematable} shows the fields stored by `dename` with example data. <!-- TODO: wording-->
 
 \begin{table}
-\label{schematable}
 \begin{tabular}{@{} l l l l @{}}
 \small name & \small pubkey & \small profile & \small last change \\ \hline
 \small alice & $pk_a$ & $\text{\texttt{22:}}pk_\texttt{ssh}\text{\texttt{,443:}} pk_\text{x509}$ & \small 2014-04-10 \\
 \small bob & $pk_b$ & \texttt{25:bob@example.com} & \small 2013-09-12 \\ \hline
 \end{tabular}
 \caption{\texttt{dename} directory schema}
+\label{schematable}
 \end{table}
 
 This requires users to regularly confirm that they still use that profile by
@@ -236,7 +236,6 @@ prefix this node corresponds to. The root hash summarizes the whole
 directory.
 
 \begin{figure}[hbt]
-\label{tree}
 \Tree[.\(h\left(\scriptstyle{}{h(a,P_a),\;h({\scriptscriptstyle{}h({h(b,P_b),\;h(c,P_c)}),\;h(d,P_d)})}\right)\)
 	  [.\(h(a,P_a)\) ]
       [.\(h({\scriptstyle{}{h(\scriptscriptstyle{}{h(b,P_b),\;h(c,P_c)}),\;h(d,P_d)}})\)
@@ -248,6 +247,7 @@ directory.
       ]
 ]
 \caption{Merkle-hashed prefix tree of the following mapping: \{\(a\):\(P_a\), \(b\):\(P_b\)\, \(c\):\(P_c\), \(d\):\(P_d\)\} assuming $h(a)=\mathtt{0}_b{...}$, $h(b)=\mathtt{100}_b{...}$, $h(c)=\mathtt{101}_b{...}$ and \(h(d)={11}_b{...}\)}
+\label{tree}
 \end{figure}
 
 To prove that a name-profile pair is a part of a directory with a known
