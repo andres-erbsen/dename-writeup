@@ -8,7 +8,7 @@ dename.pdf: layout.tex content.tex build/layout.bbl
 
 build/layout.bbl: citations.bib layout.tex content.tex
 	mkdir -p ./build/msc
-	$(TEX) -output-directory=build layout.tex
+	$(TEX) --shell-escape -output-directory=build layout.tex
 	$(BIBER) build/layout.bcf
 
 content.tex: dename.md
