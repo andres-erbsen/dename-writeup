@@ -18,16 +18,15 @@ of the Kerberos domain controller would result in a total compromise of
 the security domain. For this reason, security-critical applications try
 to work around the need for a directory service; for example, `ssh`,
 OpenPGP, OTR and Pond have users manually communicate the critical bits
-of authenticating information to each other. This approach is
-tedious and prone to human error, especially
-if the users are not online at the same time[@Johnny1999]
-[@Johnny2008][@arsTechnicaGGreenwaldPGP]. Recently,
-better ways to maintain a user directory have been discovered, such as
-[@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin. However,
-all of those rely on economic feedback loops for security, and the cost
-is passed on to the users. We present `dename` -- an efficient
-distributed user directory service that works under the assumption that
-at least one of the servers is secure. \endabstract
+of authenticating information to each other. This approach is tedious
+and prone to human error, especially if the users are not online at the
+same time[@Johnny1999] [@Johnny2008][@arsTechnicaGGreenwaldPGP]. While
+better ways to maintain an user directory exist (for example
+[@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin), the
+security guarantee they provide is still much weaker than what is
+achieved through careful manual key exchange. We present `dename`
+-- an efficient distributed user directory that works under the
+assumption that at least one of the servers is secure. \endabstract
 
 \section*{Overview}
 
@@ -457,7 +456,7 @@ kinds of deviations from the specified protocol by other servers even if
 ignoring them would be completely harmless -- this is intended to assist
 with debugging and validation of possible other implementations.
 
-The consenus protocol
+The consensus protocol
 ---------------------
 
 The protocol we use to maintain verifiable consensus in a group of
