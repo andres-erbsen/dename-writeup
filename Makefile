@@ -1,4 +1,4 @@
-TEX=xelatex
+TEX=pdflatex
 BIBER?=biber
 
 dename.pdf: layout.tex content.tex build/layout.bbl
