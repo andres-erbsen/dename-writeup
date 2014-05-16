@@ -4,25 +4,23 @@ widely understood and often dismissed as trivial, we build a public key
 distribution mechanism that is suitable for universal adoption.
 -->
 
-\abstract
-This paper presents `dename`, a public key distribution mechanism
-suitable for universal adoption using simple and widely understood
-mechanisms.
-Many applications rely on some form of directory service for connecting
-human-meaningful user identifiers (names) with application data
-associated with that user. We present `dename` -- a distributed system
-to implement a secure user directory under the assumption that at least
-one of the predetermined servers is secure. It provides the following
-abstraction: anybody can register a name that has not been registered
-already and modify the profile that corresponds to any name they own;
-a profile cannot be modified without the owners consent. Clients can
-efficiently query the state of that directory using Merkle-hashed
-prefix-tree representation of the name-profile mapping. Third parties
-can verify that all servers follow the protocol. We show how this system
-can be used to drastically improve the usability of three common
-security-critical operations: remote administration (OpenSSH), digital
-signature management (OpenPGP) and asynchronous messaging (Pond).
-
+\abstract This paper presents `dename`, a public key distribution
+mechanism suitable for universal adoption using simple and widely
+understood mechanisms. Many applications rely on some form of directory
+service for connecting human-meaningful user identifiers (names) with
+application data associated with that user. We present `dename` --
+a distributed system that implements a secure user directory under the
+assumption that at least one of the predetermined servers is secure. It
+provides the following abstraction: anybody can register a name that has
+not been registered already and modify the profile that corresponds to
+any name they own, but a profile cannot be modified without the owner's
+consent. Clients can efficiently query the state of that directory using
+Merkle-hashed prefix-tree representation of the name-profile mapping.
+Third parties can verify that all servers follow the protocol. We show
+how this system can be used to drastically improve the usability of
+three common security-critical operations: remote administration
+(OpenSSH), digital signature management (OpenPGP) and asynchronous
+messaging (Pond).
 \endabstract
 
 Introduction
@@ -194,7 +192,7 @@ In `dename`, all $n$ servers announce exactly one set of changes
 $\Delta_1 \ldots \Delta_n$ during each round, so we can group each
 server's acknowledgments of all messages it received into one message.
 Furthermore, as only the equality of the sets of announcements received
-by different servers is important rather than the actual contents, we can sign
+by different servers is important, rather than the actual contents, we can sign
 a cryptographic hash $h(\Delta_1 \parallel \ldots \parallel \Delta_n)$ of all
 received announcements in an acknowledgment instead of the announcements
 themselves. The verified broadcast protocol can be seen in figure \ref{VerifiedBcast}.
