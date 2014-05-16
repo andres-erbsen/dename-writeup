@@ -51,7 +51,7 @@ how third parties can verify that the core servers enforce these rules.
 The discussion of the operation of this system is organized as follows:
 Section \ref{relatedwork} contains a short review of several systems
 that seek to provide similar properties. In section
-\ref{consensusSection}, we describe how the servers communicate with
+\ref{consensusSection} we describe how the servers communicate with
 each other to apply changes to the directory while ensuring that they
 end up with identical results. In general, this is the problem of
 replicating a state machine in the presence of malicious faults, but the
@@ -61,10 +61,10 @@ procedure of looking up users' profiles in section \ref{lookupSection}:
 We start with a trivial but inefficient protocol and end up storing the
 directory in a Merkle hashed radix tree and serving its branches. We
 argue that if a lookup succeeds, then the result must have been accepted
-by all servers. In section \ref{freshness}, we tackle the issue of
+by all servers. In section \ref{freshness} we tackle the issue of
 freshness, that is, we provide a system for ensuring that the result
 represents the most up-to-date state of the system. In section
-\ref{verifiers}, we show how independent verifiers can be added to this
+\ref{verifiers} we show how independent verifiers can be added to this
 system in the spirit of Certificate
 Transparency[@CertificateTransparancy]. Starting from the Merkle tree
 data structure described previously, this addition is relatively
@@ -668,7 +668,7 @@ wrote a wrapper script for the `gpg` implementation of OpenPGP that uses
 `dename` to look up the public keys and then lets `gpg` continue as if
 the user had acquired and the key manually. In particular, this
 composition provides a very simple interface for verifying digitally
-signed messages and encrypting messages and files: there is no up-front
+signed messages and encrypting messages and files: there is no per-contact
 setup overhead and the user only has to specify the operation they wish
 to perform and the `dename` username of the other party.
 
