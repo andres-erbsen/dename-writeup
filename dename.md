@@ -13,7 +13,7 @@ associated with that user. When trying to provide security, the lack of
 a sufficiently trusted directory can easily become a bottleneck:
 compromising any one certificate authority of an attacker's choice
 breaks anything that relies on certificate-authority-based public key
-infrastructure [@EllisonSchneierPKI][@SchneierVerisignHacked]; a breach
+infrastructure [@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo]; a breach
 of the Kerberos domain controller would result in a total compromise of
 the security domain. For this reason, security-critical applications try
 to work around the need for a directory service; for example, `ssh`,
@@ -28,7 +28,8 @@ achieved through careful manual key exchange. We present `dename`
 -- an efficient distributed user directory that works under the
 assumption that at least one of the servers is secure. \endabstract
 
-\section*{Overview}
+Overview
+========
 
 In essence, `dename` works by having a group of predetermined but
 independently administered servers maintain identical copies of the user
@@ -69,6 +70,62 @@ protocol described in this paper and evaluate the impact of its use on the
 usability of two security-critical applications: asynchronous messaging and
 remote server administration.
 
+Related work
+============
+
+There are a number of systems that map human-readable names to
+security-critical public information such as public keys. Subtle
+differences in the semantics of how the names are assigned can have
+a huge impact on the security properties of the system.
+
+**Single-assigner systems**:
+The most widely used way of associating public keys with names is the
+X.509 Public Key Infrastructure. Any one of the globally known and
+trusted set of certificate authorities can handle a certificate singing
+request (usually for a fee) and produce a digitally signed certificate
+stating that a certain public key belongs to the entity bearing the
+specified name. The compromise of any one of the certificate authorities
+can and has lead to an attacker being able to impersonate arbitrary
+names[@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo].
+Other systems that permit a single party to change the mapping, for
+example DNS, Kerberos and Keybase, are subject to similar issues. Secure
+*lookup* protocols such as DNSSEC or DNSCurve do not protect against
+server compromise either. Certificate
+Transparency[@CertificateTransparancy] provides a means to detect
+certificate authority misbehavior. It has been argued that the threat of
+public scrutiny would deter intentional violations of the certification
+practices and provide additional motivation for the certificate
+authorities to keep their systems secure. The effectiveness of such
+indirect measures is yet to be determined, and thus currently
+insufficient to state a strong security guarantee. In DANE[daneRFC], the
+manager of a DNS domain assigns public keys to its subdomains. This
+limits the effects of the compromise of an assigner to its subtree, but
+the root is still a central point of failure.
+
+**Online verification:**
+With Convergence[@convergence] or Perspectives[@perspectives], public
+"network notary" servers regularly monitor the public keys used by
+public websites. Anyone can run a network notary server; anyone a choose
+the set of notaries to trust. These systems are inherently limited to
+servers that are always online when their public keys are looked up. The
+mechanism the notaries use to contact the servers is also a potential
+point of attack; currently unauthenticated DNS is used.
+
+**NameCoin** aims for very similar semantics to `dename` but uses
+a completely different construction. The mapping is determined by the
+longest log of name assignments available; anybody can extend any log,
+but doing so is computationally intensive. Assuming that most
+computational power is controlled by parties who adhere to the protocol,
+a correct log will be the longest in expectation.
+
+**Cross-certification** systems such as Crypto-Book[@CryptoBook] and
+Keybase's account ownership proofs do not even aim to provide better
+security than the social network websites they rely on for user
+authentication. In general, designs that strictly follow the naming
+conventions of an existing non-cryptographic system provide weaker
+security guarantees because the name assignment process is a single
+point of failure.
+
 Maintaining consensus
 =====================
 
@@ -95,11 +152,11 @@ a cryptographic hash $h(\Delta_1 \parallel \ldots \parallel \Delta_n)$ of all
 received announcements in an acknowledgment instead of the announcements
 themselves. The verified broadcast protocol can be seen in figure \ref{VerifiedBcast}. <!-- FIXME: check that this says "figure 1" -->
 
-\begin{figure}[hbt]
+\begin{figure}[htb]
 \begin{msc}
 msc {
-  hscale = "0.65",
-  arcgradient = "10";
+  hscale = "0.8",
+  arcgradient = "13";
 
   a [label="A"], b [label="B"] , c [label="C"];
 
@@ -155,7 +212,7 @@ the corresponding secret key has been lost, we also allow expiration:
 
 Table \ref{schematable} shows the fields stored by `dename` with example data. <!-- TODO: wording-->
 
-\begin{table}
+\begin{table}[htb]
 \begin{tabular}{@{} l l l l @{}}
 \small name & \small pubkey & \small profile & \small last change \\ \hline
 \small alice & $pk_a$ & $\text{\texttt{22:}}pk_\texttt{ssh}\text{\texttt{,443:}} pk_\text{x509}$ & \small 2014-04-10 \\
@@ -198,11 +255,11 @@ encrypted requests to other servers before having received hashes from
 them and reveals the encryption key to reveal the requests. The final
 protocol is displayed in figure \ref{consensusProtocol}.
 
-\begin{figure}[hbt]
+\begin{figure}[htb]
 \begin{msc}
 msc {
-  hscale = "0.65",
-  arcgradient = "10";
+  hscale = "0.8",
+  arcgradient = "13";
 
   a,b,c;
 
@@ -248,7 +305,7 @@ the state of all names (and the respective profiles) that start with the
 prefix this node corresponds to. The root hash summarizes the whole
 directory.
 
-\begin{figure}[hbt]
+\begin{figure}[htb]
 \Tree[.\(h\left(\scriptstyle{}{h(a,P_a),\;h({\scriptscriptstyle{}h({h(b,P_b),\;h(c,P_c)}),\;h(d,P_d)})}\right)\)
 	  [.\(h(a,P_a)\) ]
       [.\(h({\scriptstyle{}{h(\scriptscriptstyle{}{h(b,P_b),\;h(c,P_c)}),\;h(d,P_d)}})\)
