@@ -16,7 +16,7 @@ breaks anything that relies on certificate-authority-based public key
 infrastructure [@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo]; a breach
 of the Kerberos domain controller would result in a total compromise of
 the security domain. For this reason, security-critical applications try
-to work around the need for a directory service; for example, `ssh`,
+to work around the need for a directory service; for example, OpenSSH,
 OpenPGP, OTR and Pond have users manually communicate the critical bits
 of authenticating information to each other. This approach is tedious
 and prone to human error, especially if the users are not online at the
@@ -333,7 +333,7 @@ directory.
 		\(h(c,P_c)\)
       ]
 ]
-\caption{Merkle-hashed prefix tree of the following mapping: \{\(a\):\(P_a\), \(b\):\(P_b\)\, \(c\):\(P_c\), \(d\):\(P_d\)\} assuming $h(a)=\mathtt{0}_b{...}$, $h(b)=\mathtt{100}_b{...}$, $h(c)=\mathtt{101}_b{...}$ and \(h(d)={11}_b{...}\)}
+\caption{Merkle-hashed prefix tree of the following mapping: \{\(a\):\(P_a\), \(b\):\(P_b\)\, \(c\):\(P_c\), \(d\):\(P_d\)\} where $h(a)=\mathtt{0}_b{...}$, $h(b)=\mathtt{100}_b{...}$, $h(c)=\mathtt{101}_b{...}$ and \(h(d)={11}_b{...}\)}
 \label{tree}
 \end{figure}
 
@@ -629,9 +629,10 @@ Twitter.
 
 To show that it is practical to replace manual public key distribution
 with `dename`, we integrated a `dename` client with the Pond
-asynchronous messaging system and `ssh`. Modifying Pond to work with
-`dename` required changing 50 lines of logic code and 200 lines of user
-interface declarations; the two `ssh` wrapper scripts are 3 lines each.
+asynchronous messaging system, OpenSSH and OpenPGP. Modifying Pond to
+work with `dename` required changing 50 lines of logic code and 200
+lines of user interface declarations, the two `ssh` wrapper scripts are
+2 lines each and the `gpg` wrapper is 15 lines.
 
 Pond requires each pair of users to establish a shared secret before
 they can use Pond to communicate with each other. The Pond User Guide
@@ -659,6 +660,16 @@ corresponding profile and get the host key from there without having to
 prompt the user at all. As in our experience many users tend to neglect
 the `ssh` host key validation step, this modification will not only
 increase convenience but also improve security.
+
+OpenPGP is notorious for being hard to use, largely due to the
+complexity of manual public key distribution[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP]. We
+wrote a wrapper script for the `gpg` implementation of OpenPGP that uses
+`dename` to look up the public keys and then lets `gpg` continue as if
+the user had acquired and the key manually. In particular, this
+composition provides a very simple interface for verifying digitally
+signed messages and encrypting messages and files: there is no up-front
+setup overhead and the user only has to specify the operation they wish
+to perform and the `dename` username of the other party.
 
 Further work
 ============
