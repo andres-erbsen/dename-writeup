@@ -6,10 +6,28 @@ distribution mechanism that is suitable for universal adoption.
 
 \abstract
 \textbf{We build a public key distribution mechanism suitable for universal
-adoption using simple and widely understood mechanisms.}\
+adoption using simple widely understood mechanisms.}\
 Many applications rely on some form of directory service for connecting
 human-meaningful user identifiers (names) with application data
-associated with that user. When trying to provide security, the lack of
+associated with that user. We present `dename` -- a distributed system
+to implement a secure user directory under the assumption that at least
+one of the predetermined servers is secure. It provides the following
+abstraction: anybody can register a name that has not been registered
+already and modify the profile that corresponds to any name they own;
+a profile cannot be modified without the owners consent. Clients can
+efficiently query the state of that directory using Merkle-hashed
+prefix-tree representation of the name-profile mapping. Third parties
+can verify that all servers follow the protocol. We show how this system
+can be used to drastically improve the usability of three common
+security-critical operations: remote administration (OpenSSH), digital
+signature management (OpenPGP) and asynchronous messaging (Pond).
+
+\endabstract
+
+Introduction
+============
+
+When trying to provide security, the lack of
 a sufficiently trusted directory can easily become a bottleneck:
 compromising any one certificate authority of an attacker's choice
 breaks anything that relies on certificate-authority-based public key
@@ -24,56 +42,23 @@ same time[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP]. While
 better ways to maintain an user directory exist (for example
 [@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin), the
 security guarantee they provide is still much weaker than what is
-achieved through careful manual key exchange. We present `dename`
--- an efficient distributed user directory that works under the
-assumption that at least one of the servers is secure. \endabstract
-
-Overview
-========
+achieved through careful manual key exchange.
 
 In essence, `dename` works by having a group of predetermined but
 independently administered servers maintain identical copies of the user
 directory and collectively vouch for the correctness of the directory's
 contents. A client can contact any of these servers and any additional
 verifiers it might wish to consult to look up a profile and get a proof
-that all of them agree to the mapping the client observed. At least one
-server's honesty is sufficient for a unanimous result to be correct. We
-have the servers require that all updates to a user's profile are
-digitally signed by that user, thus preventing any other party
-(including malicious servers) from modifying it. There is a subtle
-difference between our model and the one of DNS and the x509 PKI:
-`dename` does not try to encode an existing mapping between names and
-entities, it merely allows any entity to register a name. This
-clean-slate approach allows us to define strict rules which all
-modifications of the name-profile mapping have to adhere to, and we show
-how third parties can verify that the core servers enforce these rules.
-
-The discussion of the operation of this system is organized as follows:
-Section \ref{relatedwork} contains a short review of several systems
-that seek to provide similar properties. In section
-\ref{consensusSection} we describe how the servers communicate with
-each other to apply changes to the directory while ensuring that they
-end up with identical results. In general, this is the problem of
-replicating a state machine in the presence of malicious faults, but the
-case we tackle is simpler: we give up being able to tolerate stopping
-failures by requiring all parties to participate. We describe the
-procedure of looking up users' profiles in section \ref{lookupSection}:
-We start with a trivial but inefficient protocol and end up storing the
-directory in a Merkle hashed radix tree and serving its branches. We
-argue that if a lookup succeeds, then the result must have been accepted
-by all servers. In section \ref{freshness} we tackle the issue of
-freshness, that is, we provide a system for ensuring that the result
-represents the most up-to-date state of the system. In section
-\ref{verifiers} we show how independent verifiers can be added to this
-system in the spirit of Certificate
-Transparency[@CertificateTransparancy]. Starting from the Merkle tree
-data structure described previously, this addition is relatively
-straightforward and, as a side effect, enables efficient coherent
-caching of lookup results. Finally, we describe the specifics of our
-implementation of the protocol described in this paper in section
-\ref{implementation} and evaluate the impact of its use on the usability
-of two security-critical applications: asynchronous messaging and remote
-server administration (section \ref{evaluation}).
+that all of them agree with the observed mapping. At least one server's
+honesty is sufficient for a unanimous result to be correct. Any updateto a user's profile digitally signed by that user, thus preventing any
+to a user's profile digitally signed by that user, thus preventing any
+other party (including malicious servers) from modifying it. Our system
+differs from DNS and the x509 PKI in that it does not try to encode an
+existing mapping between names and entities, it merely allows any entity
+to register a name. This clean-slate approach allows us to define strict
+rules to which all modifications of the name-profile mapping have to
+adhere to. Third parties can verify that the core servers enforce these
+rules.
 
 Related work
 ============
@@ -141,6 +126,50 @@ conventions of an existing non-cryptographic system provide weaker
 security guarantees because the name assignment process is a single
 point of failure.
 
+Overview
+========
+
+The set of servers and the namespace are fixed in one deployment of
+`dename`. Each server (and each verifier) has a signing key and knows
+the public key of every other server. To modify a name-profile mapping,
+all core servers have synchronize with each other and thus if one of
+them is down, no progress can be made. Verifiers are the same as core
+servers, except that all core servers are not required to know about
+a verifier and the core servers will continue to operate even when
+a verifier is not available. We assume that the clients obtain the
+public keys of the core servers and any verifiers whose confirmation
+they require. To register a name, modify a profile, or look up the
+profile associated with an existing name, a client will contact a server
+of its own choice. The servers will only let a client modify its own
+profile.
+
+The discussion of the operation of this system is organized as follows:
+Section \ref{relatedwork} contains a short review of several systems
+that seek to provide similar properties. In Section
+\ref{consensusSection} we describe how the servers communicate with
+each other to apply changes to the directory while ensuring that they
+end up with identical results. In general, this is the problem of
+replicating a state machine in the presence of malicious faults, but the
+case we tackle is simpler: we give up being able to tolerate stopping
+failures by requiring all parties to participate. We describe the
+procedure of looking up users' profiles in Section \ref{lookupSection}:
+We start with a trivial but inefficient protocol and end up storing the
+directory in a Merkle hashed radix tree and serving its branches. We
+argue that if a lookup succeeds, then the result must have been accepted
+by all servers. In Section \ref{freshness} we tackle the issue of
+freshness, that is, we provide a system for ensuring that the result
+represents the most up-to-date state of the system. In Section
+\ref{verifiers} we show how independent verifiers can be added to this
+system in the spirit of Certificate
+Transparency[@CertificateTransparancy]. Given the Merkle tree
+data structure, this addition is relatively
+straightforward and, as a side effect, enables efficient coherent
+caching of lookup results. Finally, we describe the specifics of our
+implementation of the protocol described in this paper in Section
+\ref{implementation} and evaluate the impact of its use on the usability
+of two security-critical applications: asynchronous messaging and remote
+server administration (Section \ref{evaluation}).
+
 Maintaining consensus
 =====================
 
@@ -167,7 +196,7 @@ Furthermore, as only the equality of the sets of announcements received
 by different servers is important rather than the actual contents, we can sign
 a cryptographic hash $h(\Delta_1 \parallel \ldots \parallel \Delta_n)$ of all
 received announcements in an acknowledgment instead of the announcements
-themselves. The verified broadcast protocol can be seen in figure \ref{VerifiedBcast}. <!-- FIXME: check that this says "figure 1" -->
+themselves. The verified broadcast protocol can be seen in figure \ref{VerifiedBcast}.
 
 \begin{figure}[htb]
 \begin{msc}
@@ -192,12 +221,10 @@ msc {
 \end{figure}
 
 If two honest servers transition to a new state as a result of a round,
-they transition to the same state:
-\begin{tabular}{c r}
-$h(\text{inputs of A}) = h(\text{inputs of B})$\\
-inputs of A = inputs of B\\
-apply(state, inputs of A) = apply(state, inputs of B)\\
-\end{tabular}
+they transition to the same state, because they apply the same changes
+to the same state in the same order and the state transition function is
+deterministic.
+
 In the description above, all messages are assumed to be authenticated.
 If one server were able to impersonate another, it could fool other
 servers into thinking that a different set of changes has been
@@ -230,11 +257,13 @@ the corresponding secret key has been lost, we also allow expiration:
 Table \ref{schematable} shows the fields stored by `dename` with example data. <!-- TODO: wording-->
 
 \begin{table}[htb]
+\begin{centering}
 \begin{tabular}{@{} l l l l @{}}
 \small name & \small pubkey & \small profile & \small last change \\ \hline
-\small alice & $pk_a$ & $\text{\texttt{22:}}pk_\texttt{ssh}\text{\texttt{,443:}} pk_\text{x509}$ & \small 2014-04-10 \\
-\small bob & $pk_b$ & \texttt{25:bob@example.com} & \small 2013-09-12 \\ \hline
+\small alice & $pk_a$ & $\text{\texttt{}}pk_\texttt{ssh}\text{\texttt{ }} pk_\text{x509}$ & \small 2014-04-10 \\
+\small bob & $pk_b$ & \texttt{bob@example.com, }$pk_\text{\texttt{gpg}}$ & \small 2013-09-12 \\ \hline
 \end{tabular}
+\end{centering}
 \caption{\texttt{dename} directory schema}
 \label{schematable}
 \end{table}
@@ -244,7 +273,7 @@ requesting a null change to it. The possibility of name-profile mapping
 expiration complicates the situation because somebody other than the original
 owner may later claim the used name, while the old profile continues to fit the
 criteria of being accepted by all servers -- this is the main motivation for
-freshness assertions (section \ref{freshness}). It is, of course, possible not
+freshness assertions (Section \ref{freshness}). It is, of course, possible not
 to have names expire, but doing so would seriously hamper the usability of the
 system owing to the proliferation of names that map to lost keys.
 
@@ -253,7 +282,7 @@ in which changes are processed: if two servers propose two valid
 requests to modify the same name in different ways, it is crucial to
 ensure that all servers choose to apply them in the same order because
 applying one of them may make the other invalid. We use a standard
-protocol commit-and-combine protocol <!-- TODO: cite one us of this! -->
+commit-and-combine protocol <!-- TODO: cite one us of this! -->
 to establish shared randomness
 between servers and use it to pick a random permutation of the list of
 servers that determines the order in which the requests they introduced
@@ -313,7 +342,7 @@ directory from one server. If the hashes the servers reported are all
 equal to the hash of the downloaded directory, the directory must be
 correct. This scheme is slightly better, but still insufficient.
 
-What we need is mechanism to prove that a single name-profile pair is
+We need a mechanism to prove that a single name-profile pair is
 a part of a larger directory with the given hash without downloading the
 whole directory. Assume that the directory is implemented as a binary
 prefix tree with profiles in the leaves. Now, every node in the tree is
@@ -448,7 +477,7 @@ The simple offline verifier
 
 The purpose of the simple verifier design is to check that the core servers have
 been enforcing the rules of changing the directory. The design we describe here
-does not aim to provide optimal throughput or responsiveness, instead we focus
+does not aim to provide optimal throughput or responsiveness: instead, we focus
 on keeping the implementation as simple as possible with the hope that it can
 therefore be widely audited and gain public confidence.
 
@@ -467,7 +496,7 @@ root hashes are present in the output of the simple verifier in the
 right order, the server must have adhered to the rules of the
 directory. <!-- this acutally means that the the current sequence is ok -->
 
-We implemented this verifier using 40 lines of readable python code and
+We implemented this verifier using 40 lines of readable Python code and
 20 lines of `protobuf`[@protobuf] format specification. No custom
 libraries were used; an in-memory implementation of the Merkle tree is
 included in these 40 lines.
@@ -529,7 +558,7 @@ being just slightly disk-bound. This number may not seem high when
 compared to non-cryptographic databases, but 750 million profile changes
 per month is unlikely to become a limiting factor in any realistic
 deployment scenario. Our implementation also detects and reports various
-kinds of deviations from the specified protocol by other servers even if
+kinds of deviations from the specified protocol by other servers, even if
 ignoring them would be completely harmless -- this is intended to assist
 with debugging and validation of possible other implementations.
 
@@ -551,7 +580,7 @@ the crash recovery procedure involves fairly complicated queries to the
 consensus-specific state.
 
 We sought to preserve the semantic separation between rounds in the
-implementation by making each round be managed by its own thread and
+implementation by making each round managed by its own thread and
 control structures, but in order to simplify the crash recovery
 procedure, we added an explicit dependency between adjacent rounds. If a
 server has not seen all other servers' signatures for the shared state
@@ -602,7 +631,7 @@ bits and existing adoption in real-world systems.
     Widely used, fast enough.
 -   `salsa20poly1305` encryption for concealing messages from servers
     during the commitment phase of a round. Any authenticated encryption
-    scheme suffices, chosen for simplicity.
+    scheme suffices. Chosen for simplicity.
 -   `salsa20` keystream for pseudo-random number generation to break
     ties between requested changes. Chosen for simplicity.
 
@@ -610,29 +639,30 @@ Evaluation
 ==========
 
 \label{evaluation}
-A usability evaluation of PGP[@Johnny1999] pointed out the need for a simpler
-and smaller conceptual model of security than manual handling of public keys as
-used in PGP. Pond[@Pond] and OTR do not require users to learn fundamentally new
-ways of reasoning about security, but they do not scale as well to broader use:
-while proficient OpenPGP users can use the web of trust to verify each other's
-public keys non-interactively, Pond and OTR require each pair of users to
-communicate with each other through some trusted channel. Furthermore, while
-substantially simpler that PGP's, the model used by Pond and OTR is still alien
-to most users -- we are not aware of any widely adopted programs that require
-users to establish shared secrets. Using `dename`, we can get the best of both
-worlds: assuming the user trusts that one of the `dename` servers will treat
-them honestly, the only piece of information a user needs to give to the
-software about the user they wish to communicate with is the recipient's
-hand-picked username. All security-specific details can be handled behind the
-scenes. This model is even simpler than Pond's and OTR's, and is likely to be
-already familiar to a large fraction of the users, for example from Email or
-Twitter.
+A usability evaluation of PGP[@Johnny1999] pointed out the need for
+a conceptual model of security simpler and smaller than manual handling
+of public keys as used in PGP. Pond[@Pond] and OTR do not require users
+to learn fundamentally new ways of reasoning about security, but they do
+not scale as well to broader use: while proficient OpenPGP users can use
+the web of trust to verify each other's public keys non-interactively,
+Pond and OTR require each pair of users to communicate with each other
+through some trusted channel. Furthermore, while substantially simpler
+that PGP's, the model used by Pond and OTR is still alien to most users
+-- we are not aware of any widely adopted programs that require users to
+establish shared secrets. Using `dename`, we can get the best of both
+worlds: assuming the user trusts that one of the `dename` servers will
+treat them honestly, the only piece of information a user needs to give
+to the software about the user they wish to communicate with is the
+recipient's hand-picked username. All security-specific details can be
+handled behind the scenes. This model is even simpler than Pond's and
+OTR's, and is likely to be already familiar to a large fraction of the
+users, for example from Email or Twitter.
 
 To show that it is practical to replace manual public key distribution
 with `dename`, we integrated a `dename` client with the Pond
 asynchronous messaging system, OpenSSH and OpenPGP. Modifying Pond to
 work with `dename` required changing 50 lines of logic code and 200
-lines of user interface declarations, the two `ssh` wrapper scripts are
+lines of user interface declarations. the two `ssh` wrapper scripts are
 2 lines each and the `gpg` wrapper is 15 lines.
 
 Pond requires each pair of users to establish a shared secret before
@@ -676,14 +706,15 @@ other party.
 Further work
 ============
 
-First and foremost, `dename` does not deal with key revocation. While a user can
-make their name point to a different key, there is no guarantee that other users
-who have already downloaded to old key will stop using it. As the appropriate
-times for revocation-checking are application-dependent, this needs to be
-tackled separately. Interacting with usernames can also be surprisingly tricky
-in an adversarial environment: typosquatting and homograph attacks are not
-prevented by the `dename` infrastructure; doing so is another responsibility of
-the application writer.
+First and foremost, `dename` does not deal the revocation of keys that
+have already been downloaded. While a user can make their name point to
+a different key, there is no guarantee that other users who have already
+downloaded to old key will stop using it. As the appropriate times for
+revocation-checking are application-dependent, this needs to be tackled
+separately. Interacting with usernames can also be surprisingly tricky
+in an adversarial environment: typosquatting and homograph attacks are
+not prevented by the `dename` infrastructure; doing so is another
+responsibility of the application writer.
 
 We have shown that it is practical to maintain an exact copy of the user
 directory using consumer grade hardware. For a large-scale deployment,
