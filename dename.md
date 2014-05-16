@@ -432,7 +432,7 @@ We view having a fixed set of servers as a necessary evil: it is
 inherently a central point of compromise, but the only alternative we
 know is having the evolution of the directory state determined by
 entities that score highest by some arbitrary metric, such as the
-hashing power they control, as in BitCoin and NameCoin. To mitigate this
+hashing power they control, as in NameCoin. To mitigate this
 weakness, we provide an additional accountability mechanism: everyone
 can observe how the central servers change the state of the directory,
 detect deviations from the rules and, in case of invalid changes being
@@ -662,15 +662,16 @@ prompt the user at all. As in our experience many users tend to neglect
 the `ssh` host key validation step, this modification will not only
 increase convenience but also improve security.
 
-OpenPGP is notorious for being hard to use, largely due to the
-complexity of manual public key distribution[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP]. We
-wrote a wrapper script for the `gpg` implementation of OpenPGP that uses
-`dename` to look up the public keys and then lets `gpg` continue as if
-the user had acquired and the key manually. In particular, this
-composition provides a very simple interface for verifying digitally
-signed messages and encrypting messages and files: there is no per-contact
-setup overhead and the user only has to specify the operation they wish
-to perform and the `dename` username of the other party.
+OpenPGP is notorious for being hard to use, largely due to the complexity of
+manual public key
+distribution[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP]. We wrote
+a wrapper script for the `gpg` implementation of OpenPGP that uses `dename` to
+look up the public keys and then lets `gpg` continue as if the user had acquired
+and verified the key manually. In particular, this composition provides a very
+simple interface for verifying digitally signed messages and encrypting messages
+and files: there is no per-contact setup overhead and the user only has to
+specify the operation they wish to perform and the `dename` username of the
+other party.
 
 Further work
 ============
