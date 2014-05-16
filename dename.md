@@ -5,8 +5,9 @@ distribution mechanism that is suitable for universal adoption.
 -->
 
 \abstract
-\textbf{We build a public key distribution mechanism suitable for universal
-adoption using simple widely understood mechanisms.}\
+This paper presents `dename`, a public key distribution mechanism
+suitable for universal adoption using simple and widely understood
+mechanisms.
 Many applications rely on some form of directory service for connecting
 human-meaningful user identifiers (names) with application data
 associated with that user. We present `dename` -- a distributed system
@@ -539,8 +540,8 @@ servers. Unlike with DNS and Namecoin, a client using a cache achieves
 the same security guarantees as a client that interacts with any one
 core server.
 
-Implementation details
-======================
+Implementation
+==============
 
 \label{implementation}
 We implemented the `dename` server and client libraries in less than
@@ -703,8 +704,8 @@ and files: there is no per-contact setup overhead and the user only has to
 specify the operation they wish to perform and the `dename` username of the
 other party.
 
-Further work
-============
+Limitations and Future Work
+===========================
 
 First and foremost, `dename` does not deal the revocation of keys that
 have already been downloaded. While a user can make their name point to
@@ -730,3 +731,9 @@ the security guarantee, we believe that this loss would be offset by the
 security gained from having a more diverse set of parties operating the servers.
 We are not aware of any state machine replication protocol that could be used to
 implement this.
+
+Conclusion
+==========
+
+This paper presented `dename`, a public key distribution mechanism
+XXX.  XXX re-state points from the abstract/intro XXX.
