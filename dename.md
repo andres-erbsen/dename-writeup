@@ -4,33 +4,35 @@ widely understood and often dismissed as trivial, we build a public key
 distribution mechanism that is suitable for universal adoption.
 -->
 
-\abstract This paper presents `dename`, a public key distribution
-mechanism suitable for universal adoption using simple and widely
-understood mechanisms. Many applications rely on some form of directory
-service for connecting human-meaningful user identifiers (names) with
-application data associated with that user. We present `dename` --
-a distributed system that implements a secure user directory under the
-assumption that at least one of the predetermined servers is secure. It
-provides the following abstraction: anybody can register a name that has
-not been registered already and modify the profile that corresponds to
-any name they own, but a profile cannot be modified without the owner's
-consent. Clients can efficiently query the state of that directory using
-Merkle-hashed prefix-tree representation of the name-profile mapping.
-Third parties can verify that all servers follow the protocol. We show
-how this system can be used to drastically improve the usability of
-three common security-critical operations: remote administration
-(OpenSSH), digital signature management (OpenPGP) and asynchronous
-messaging (Pond).
+\abstract
+This paper presents `dename`, a public key distribution mechanism
+suitable for universal adoption using simple and widely understood
+mechanisms. Many applications rely on some form of directory service for
+connecting human-meaningful user identifiers (names) with application
+data associated with that user. Given a set of servers such that at
+least one of them is secure, `dename` provides the following interface:
+anybody can register a name that has not been registered already and
+modify the profile that corresponds to any name they own, but a profile
+cannot be modified without the owner's consent. Clients can efficiently
+query the state of that directory using Merkle-hashed prefix-tree
+representation of the name-profile mapping. Third parties can verify
+that all servers follow the protocol. We show how this system can be
+used to drastically improve the usability of three common
+security-critical operations: remote administration (OpenSSH), digital
+signature management (OpenPGP) and asynchronous messaging (Pond).
 \endabstract
 
 Introduction
 ============
 
-When trying to provide security, the lack of
-a sufficiently trusted directory can easily become a bottleneck:
-compromising any one certificate authority of an attacker's choice
-breaks anything that relies on certificate-authority-based public key
-infrastructure [@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo]; a breach
+Many cryptographic protocols assume that either all participants know
+each other's public keys, or that there exists a trustworthy directory
+that can be used to look up these public keys. The security of the
+directory system itself often ends up being a weak point of the overall
+system's security: compromising any one certificate authority of an
+attacker's choice breaks anything that relies on
+certificate-authority-based public key infrastructure
+[@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo]; a breach
 of the Kerberos domain controller would result in a total compromise of
 the security domain. For this reason, security-critical applications try
 to work around the need for a directory service; for example, OpenSSH,
@@ -38,9 +40,9 @@ OpenPGP, OTR and Pond have users manually communicate the critical bits
 of authenticating information to each other. This approach is tedious
 and prone to human error, especially if the users are not online at the
 same time[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP]. While
-better ways to maintain an user directory exist (for example
-[@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin), the
-security guarantee they provide is still much weaker than what is
+better ways to maintain a directory of users' public keys exist (for
+example [@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin),
+the security guarantee they provide is still much weaker than what is
 achieved through careful manual key exchange.
 
 In essence, `dename` works by having a group of predetermined but
@@ -49,15 +51,21 @@ directory and collectively vouch for the correctness of the directory's
 contents. A client can contact any of these servers and any additional
 verifiers it might wish to consult to look up a profile and get a proof
 that all of them agree with the observed mapping. At least one server's
-honesty is sufficient for a unanimous result to be correct. Any updateto a user's profile digitally signed by that user, thus preventing any
-to a user's profile digitally signed by that user, thus preventing any
-other party (including malicious servers) from modifying it. Our system
-differs from DNS and the x509 PKI in that it does not try to encode an
-existing mapping between names and entities, it merely allows any entity
-to register a name. This clean-slate approach allows us to define strict
-rules to which all modifications of the name-profile mapping have to
-adhere to. Third parties can verify that the core servers enforce these
-rules.
+honesty is sufficient for a unanimous result to be correct. Any update
+to a user's profile must be digitally signed by that user. This prevents
+any other party (including malicious servers) from modifying it. Our
+system differs from DNS and the x509 PKI in that it does not try to
+encode an existing mapping between names and entities, it merely allows
+any entity to register a name. This clean-slate approach allows us to
+define strict rules to which all modifications of the name-profile
+mapping have to adhere to. Third parties can verify that the core
+servers enforce these rules.
+
+We implemented a prototype of the system, showed that it can be use on
+global scale and measured its performance. We integrated `dename` with
+three different applications that previously relied on manual key
+distribution and informally evaluated the usability impact of the
+modifications.
 
 Related work
 ============
@@ -79,15 +87,16 @@ specified name. The compromise of any one of the certificate authorities
 can and has lead to an attacker being able to impersonate arbitrary
 names[@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo].
 Other systems that permit a single party to change the mapping, for
-example DNS, Kerberos and Keybase, are subject to similar issues. Secure
+example DNS and Keybase, are subject to similar issues. Secure
 *lookup* protocols such as DNSSEC or DNSCurve do not protect against
-server compromise either. Certificate
-Transparency[@CertificateTransparancy] provides a means to detect
-certificate authority misbehavior. It has been argued that the threat of
-public scrutiny would deter intentional violations of the certification
-practices and provide additional motivation for the certificate
-authorities to keep their systems secure. The effectiveness of such
-indirect measures is yet to be determined, and thus currently
+server compromise either.
+
+Certificate Transparency[@CertificateTransparancy] provides a means to
+detect certificate authority misbehavior. It has been argued that the
+threat of public scrutiny would deter intentional violations of the
+certification practices and provide additional motivation for the
+certificate authorities to keep their systems secure. The effectiveness
+of such indirect measures is yet to be determined, and thus currently
 insufficient to state a strong security guarantee. In DANE[daneRFC], the
 manager of a DNS domain assigns public keys to its subdomains. This
 limits the effects of the compromise of an assigner to its subtree, but
@@ -219,10 +228,10 @@ msc {
 \label{VerifiedBcast}
 \end{figure}
 
-If two honest servers transition to a new state as a result of a round,
+<!--REDUNTANT? If two honest servers transition to a new state as a result of a round,
 they transition to the same state, because they apply the same changes
 to the same state in the same order and the state transition function is
-deterministic.
+deterministic.-->
 
 In the description above, all messages are assumed to be authenticated.
 If one server were able to impersonate another, it could fool other
@@ -259,7 +268,7 @@ Table \ref{schematable} shows the fields stored by `dename` with example data. <
 \begin{centering}
 \begin{tabular}{@{} l l l l @{}}
 \small name & \small pubkey & \small profile & \small last change \\ \hline
-\small alice & $pk_a$ & $\text{\texttt{}}pk_\texttt{ssh}\text{\texttt{ }} pk_\text{x509}$ & \small 2014-04-10 \\
+\small alice & $pk_a$ & $\text{\texttt{}}pk_\texttt{ssh},\text{\texttt{ }} pk_\text{x509}$ & \small 2014-04-10 \\
 \small bob & $pk_b$ & \texttt{bob@example.com, }$pk_\text{\texttt{gpg}}$ & \small 2013-09-12 \\ \hline
 \end{tabular}
 \end{centering}
