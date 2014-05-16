@@ -130,7 +130,8 @@ computation is required to register a name, the entities who perform
 this computation charge for registration. This provides some incentive
 for good nodes to invest computational power into NameCoin, but there is
 no inherent reason why this would result in the good nodes being
-computationally more powerful than the bad nodes.
+computationally more powerful than the bad nodes. Either way, this
+competitive use of resources results in high operating costs[@BitcoinElectricity].
 
 **Cross-certification** systems such as Crypto-Book[@CryptoBook] and
 Keybase's account ownership proofs do not even aim to provide better
