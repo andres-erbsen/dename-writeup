@@ -20,7 +20,7 @@ to work around the need for a directory service; for example, `ssh`,
 OpenPGP, OTR and Pond have users manually communicate the critical bits
 of authenticating information to each other. This approach is tedious
 and prone to human error, especially if the users are not online at the
-same time[@Johnny1999] [@Johnny2008][@arsTechnicaGGreenwaldPGP]. While
+same time[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP]. While
 better ways to maintain an user directory exist (for example
 [@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin), the
 security guarantee they provide is still much weaker than what is
@@ -49,36 +49,43 @@ modifications of the name-profile mapping have to adhere to, and we show
 how third parties can verify that the core servers enforce these rules.
 
 The discussion of the operation of this system is organized as follows:
-first, we describe how the servers communicate with each other to apply
-changes to the directory while ensuring that they end up with identical
-results. This is similar to the problem of replicating a state machine
-in the presence of malicious faults, but the case we tackle is simpler:
-we give up being able to tolerate stopping failures by requiring all
-parties to participate. Second, we describe the procedure of looking up
-users' profiles. We start with a trivial but inefficient protocol and
-end up storing the directory in a Merkle hashed radix tree and serving
-its branches. We argue that if a lookup succeeds, then the result must
-have been accepted by all servers. Third, we tackle the issue of
+Section \ref{relatedwork} contains a short review of several systems
+that seek to provide similar properties. In section
+\ref{consensusSection}, we describe how the servers communicate with
+each other to apply changes to the directory while ensuring that they
+end up with identical results. In general, this is the problem of
+replicating a state machine in the presence of malicious faults, but the
+case we tackle is simpler: we give up being able to tolerate stopping
+failures by requiring all parties to participate. We describe the
+procedure of looking up users' profiles in section \ref{lookupSection}:
+We start with a trivial but inefficient protocol and end up storing the
+directory in a Merkle hashed radix tree and serving its branches. We
+argue that if a lookup succeeds, then the result must have been accepted
+by all servers. In section \ref{freshness}, we tackle the issue of
 freshness, that is, we provide a system for ensuring that the result
-represents the most up-to-date state of the system. Fourth, we show how
-independent verifiers can be added to this system in the spirit of
-Certificate Transparency[@CertificateTransparancy]. Starting from the
-Merkle tree data structure described previously, this addition is relatively
-straightforward and, as a side effect, enables efficient coherent caching of
-lookup results. Finally, we describe the specifics of our implementation of the
-protocol described in this paper and evaluate the impact of its use on the
-usability of two security-critical applications: asynchronous messaging and
-remote server administration.
+represents the most up-to-date state of the system. In section
+\ref{verifiers}, we show how independent verifiers can be added to this
+system in the spirit of Certificate
+Transparency[@CertificateTransparancy]. Starting from the Merkle tree
+data structure described previously, this addition is relatively
+straightforward and, as a side effect, enables efficient coherent
+caching of lookup results. Finally, we describe the specifics of our
+implementation of the protocol described in this paper in section
+\ref{implementation} and evaluate the impact of its use on the usability
+of two security-critical applications: asynchronous messaging and remote
+server administration (section \ref{evaluation}).
 
 Related work
 ============
 
-There are a number of systems that map human-readable names to
-security-critical public information such as public keys. Subtle
-differences in the semantics of how the names are assigned can have
-a huge impact on the security properties of the system.
 
-**Single-assigner systems**:
+\label{relatedwork} There are a number of systems that map
+human-readable names to security-critical public information such as
+public keys. Subtle differences in the semantics of how the names are
+assigned can have a huge impact on the security properties of the
+system.
+
+**Single-assigner**:
 The most widely used way of associating public keys with names is the
 X.509 Public Key Infrastructure. Any one of the globally known and
 trusted set of certificate authorities can handle a certificate singing
@@ -102,21 +109,28 @@ manager of a DNS domain assigns public keys to its subdomains. This
 limits the effects of the compromise of an assigner to its subtree, but
 the root is still a central point of failure.
 
-**Online verification:**
+**Availability-based:**
 With Convergence[@convergence] or Perspectives[@perspectives], public
 "network notary" servers regularly monitor the public keys used by
-public websites. Anyone can run a network notary server; anyone a choose
-the set of notaries to trust. These systems are inherently limited to
-servers that are always online when their public keys are looked up. The
-mechanism the notaries use to contact the servers is also a potential
-point of attack; currently unauthenticated DNS is used.
+public websites. Anyone can run a network notary server; anyone can
+choose the set of notaries to trust. These systems are inherently
+limited to servers that are always online when their public keys are
+looked up. The mechanism the notaries use to contact the servers is also
+a potential point of attack; currently unauthenticated DNS is used.
+Furthermore, no consistency guarantees are provided: two honest notaries
+may report a different public key for the same site.
 
 **NameCoin** aims for very similar semantics to `dename` but uses
 a completely different construction. The mapping is determined by the
 longest log of name assignments available; anybody can extend any log,
-but doing so is computationally intensive. Assuming that most
-computational power is controlled by parties who adhere to the protocol,
-a correct log will be the longest in expectation.
+but doing so is computationally intensive. If most of the computational
+power is spent on NameCoin is controlled by parties who adhere to the
+protocol, a correct log will be the longest in expectation. As extensive
+computation is required to register a name, the entities who perform
+this computation charge for registration. This provides some incentive
+for good nodes to invest computational power into NameCoin, but there is
+no inherent reason why this would result in the good nodes being
+computationally more powerful than the bad nodes.
 
 **Cross-certification** systems such as Crypto-Book[@CryptoBook] and
 Keybase's account ownership proofs do not even aim to provide better
@@ -129,13 +143,15 @@ point of failure.
 Maintaining consensus
 =====================
 
-Changes to the user directory happen in discrete rounds: each server proposes
-a set of changes and all servers apply them in lockstep. We use a verified
-broadcast primitive (described below) to ensure that all servers receive the
-same set of requested changes, and the algorithm for handling them is
-deterministic. Additionally, we describe some malicious behavior that servers
-could engage in which would not directly violate the security claim, but is
-nevertheless undesirable, and modify the protocol to counteract that behavior.
+\label{consensusSection} Changes to the user directory happen in
+discrete rounds: each server proposes a set of changes and all servers
+apply them in lockstep. We use a verified broadcast primitive (described
+below) to ensure that all servers receive the same set of requested
+changes, and the algorithm for handling them is deterministic.
+Additionally, we describe some malicious behavior that servers could
+engage in which would not directly violate the security claim, but is
+nevertheless undesirable, and modify the protocol to counteract that
+behavior.
 
 The physical analogy of verified broadcast is a public announcement:
 everybody learns what the announcer has to say and can be sure that
@@ -286,6 +302,7 @@ msc {
 Lookups
 =======
 
+\label{lookupSection}
 Simplistically, looking up a profile could be implemented by having the
 client download the entire directory from each server and consider it
 correct if all copies are equal. This is impractical if there are
@@ -409,6 +426,7 @@ and requiring a unanimous answer.
 Verifiers
 =========
 
+\label{verifiers}
 We view having a fixed set of servers as a necessary evil: it is
 inherently a central point of compromise, but the only alternative we
 know is having the evolution of the directory state determined by
@@ -494,6 +512,7 @@ core server.
 Implementation details
 ======================
 
+\label{implementation}
 We implemented the `dename` server and client libraries in less than
 4000 lines of `go` using `postgresql` for storage. The current
 implementation is a compromise between performance and
@@ -582,13 +601,14 @@ bits and existing adoption in real-world systems.
     Widely used, fast enough.
 -   `salsa20poly1305` encryption for concealing messages from servers
     during the commitment phase of a round. Any authenticated encryption
-    scheme would work, chosen for simplicity.
+    scheme suffices, chosen for simplicity.
 -   `salsa20` keystream for pseudo-random number generation to break
     ties between requested changes. Chosen for simplicity.
 
 Evaluation
 ==========
 
+\label{evaluation}
 A usability evaluation of PGP[@Johnny1999] pointed out the need for a simpler
 and smaller conceptual model of security than manual handling of public keys as
 used in PGP. Pond[@Pond] and OTR do not require users to learn fundamentally new
@@ -611,7 +631,7 @@ To show that it is practical to replace manual public key distribution
 with `dename`, we integrated a `dename` client with the Pond
 asynchronous messaging system and `ssh`. Modifying Pond to work with
 `dename` required changing 50 lines of logic code and 200 lines of user
-interface declarations; the two `ssh` wrapper scripts are 2 lines each.
+interface declarations; the two `ssh` wrapper scripts are 3 lines each.
 
 Pond requires each pair of users to establish a shared secret before
 they can use Pond to communicate with each other. The Pond User Guide
@@ -640,7 +660,8 @@ prompt the user at all. As in our experience many users tend to neglect
 the `ssh` host key validation step, this modification will not only
 increase convenience but also improve security.
 
-\section*{Further work}
+Further work
+============
 
 First and foremost, `dename` does not deal with key revocation. While a user can
 make their name point to a different key, there is no guarantee that other users
