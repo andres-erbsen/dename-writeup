@@ -237,7 +237,7 @@ profile. `newSignature` is a signature on the request with the key contained in 
 If an old profile exists, `oldSignature` is a signature on the request with the old key.
 * `getRoot()`:  Return the hash of the current directory state signed by all servers.
 * `lookup(name) -> (profile, proof)`:  Return the profile that the name points to,
-along with a proof that the name-profile pair is present in the directory. Clients can check the proof
+along with a proof that the name-profile pair is present in the directory and up to date. Clients can check the proof
 against the latest root hash.
 
 We envision that `dename`'s first-come-first-served registration policy
@@ -617,7 +617,7 @@ would have no way of determining whether a name has been already
 registered or not. Instead, the core servers will supply the verifiers
 with Merkle tree proofs about the relevant directory state in addition
 to the requested changes. Specifically, each request to transfer a name
-will be annotated with the old profile (or an absence proof if there is none), its Merkle path and all siblings
+will be annotated with the old profile, its Merkle path (or an absence proof if there is none), and all siblings
 used to calculate the hashes for the new Merkle path. The verifier will
 then use the lookup procedure to verify the old mapping and calculate
 the new root hash using the server-provided values instead of storing a
@@ -656,7 +656,7 @@ expensive database byte array indices even though doing it manually is
 possible and has shown better performance. Our implementation also
 detects and reports various kinds of deviations from the specified
 protocol by other servers, even if ignoring them would be completely
-harmless -- this is intended to assist with debugging and validation of
+harmless -- this is intended to assist with the debugging and validation of
 potential alternative implementations.
 
 The consensus protocol
@@ -666,7 +666,7 @@ The protocol we use to maintain verifiable consensus in a group of
 peers, some of which may be malicious, is not specific to `dename` and
 can potentially be of interest for other projects. We preserve this
 separation in the implementation: roughly a quarter of the codebase is
-made up by a reusable consensus library. The library waits for the
+made up of a reusable consensus library. The library waits for the
 application to submit operations to be handled and calls an
 application-specified state transition function with the inputs chosen
 for a single round whenever one is processed. Similarly, network
@@ -704,7 +704,7 @@ upon them:
 -   The acknowledged commitments' signatures
 
 Currently, the in-memory data structures are reconstructed after a crash
-by reinterpreting the stored messages and using the saved encryption key
+by replaying the stored messages and using the saved encryption key
 instead of generating a new one. This approach is very robust and allows
 for relatively straightforward code, but it depends on having a full log
 of all messages received during the last 3 rounds. Synchronously writing
@@ -739,17 +739,17 @@ To see whether `dename` is suitable for large-scale adoption, we
 evaluated the two aspects of `dename` which are the most different from
 the present standards. First, it is important to check that the name
 assignment policy is not overly limiting and can be used in real-world
-applications To show that it is practical to replace manual public key
+applications. To show that it is practical to replace manual public key
 distribution with `dename`, we integrated a `dename` client with the
-Pond asynchronous messaging system, OpenSSH and OpenPGP and compared the
+Pond asynchronous messaging system, OpenSSH, and OpenPGP and compared the
 resulting user experience to the original application. Second, it is
 important that the servers are as independent as possible, so
 a geographically distributed `dename` setup must be able to handle
 we reasonable throughput of change requests. As profile lookups can be
-performed against caches in addition to the core servers lookup
+performed against caches in addition to the core servers, lookup
 performance is not critical. We also expect it to be much faster --
 a name's profile and the Merkle tree proof can be assembled during
-a single b-tree traversal.
+a single B-tree traversal.
 
 Applicability
 -------------
@@ -770,12 +770,12 @@ treat them honestly, the only piece of information a user needs to give
 to the software about the user they wish to communicate with is the
 recipient's hand-picked username. All security-specific details can be
 handled behind the scenes. This model is even simpler than Pond's and
-OTR's, and is likely to be already familiar to a large fraction of the
+OTR's, and is likely to be already familiar to a large fraction of 
 users, for example from email or Twitter.
 
 Modifying Pond to
 work with `dename` required changing 50 lines of logic code and 200
-lines of user interface declarations. the two `ssh` wrapper scripts are
+lines of user interface declarations. The two `ssh` wrapper scripts are
 2 lines each and the `gpg` wrapper is 15 lines.
 Pond requires each pair of users to establish a shared secret before
 they can use Pond to communicate with each other. The Pond User Guide
@@ -859,5 +859,5 @@ We present `dename`, a public key distribution mechanism that
 provides a very strong security guarantee: as long as at least one of
 the core servers is secure and honest, a client that successfully looks
 up a profile corresponding to a name will receive a fresh, correct response.
-Thus, `dename` can replace manual public key distribution in a variety of security-critical applications,
+Thus, `dename` can replace other key distribution mechanisms in a variety of security-critical applications,
 improving usability and decreasing the potential for user errors. 
