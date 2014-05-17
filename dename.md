@@ -88,7 +88,7 @@ system.
 **Single-assigner**:
 The most widely used way of associating public keys with names is the
 X.509 Public Key Infrastructure. Any one of the globally known and
-trusted set of certificate authorities can handle a certificate singing
+trusted set of certificate authorities can handle a certificate signing
 request (usually for a fee) and produce a digitally signed certificate
 stating that a certain public key belongs to the entity bearing the
 specified name. The compromise of any one of the certificate authorities
@@ -212,7 +212,7 @@ Furthermore, as only the equality of the sets of announcements received
 by different servers is important, rather than the actual contents, we can sign
 a cryptographic hash $h(\Delta_1 \parallel \ldots \parallel \Delta_n)$ of all
 received announcements in an acknowledgment instead of the announcements
-themselves. The verified broadcast protocol can be seen in figure \ref{VerifiedBcast}.
+themselves. The verified broadcast protocol can be seen in Figure \ref{VerifiedBcast}.
 
 \begin{figure}[htb]
 \begin{msc}
@@ -315,7 +315,7 @@ only gets to observe the other proposals after broadcasting its own. To
 spread out network load, the current implementation actually sends
 encrypted requests to other servers before having received hashes from
 them and reveals the encryption key to reveal the requests. The final
-protocol is displayed in figure \ref{consensusProtocol}.
+protocol is displayed in Figure \ref{consensusProtocol}.
 
 \begin{figure}[htb]
 \begin{msc}
@@ -362,7 +362,7 @@ We need a mechanism to prove that a single name-profile pair is
 a part of a larger directory with the given hash without downloading the
 whole directory. Assume that the directory is implemented as a binary
 prefix tree with profiles in the leaves. Now, every node in the tree is
-augmented with a hash of its children as shown in figure \ref{tree}. If
+augmented with a hash of its children as shown in Figure \ref{tree}. If
 the hash function is collision resistant, each node uniquely determines
 the state of all names (and the respective profiles) that start with the
 prefix this node corresponds to. The root hash summarizes the whole
@@ -566,16 +566,11 @@ database accesses and server signature verifications, but client
 signatures are verified twice in some scenarios, batch signature
 verification is not used at all, and some invariants are enforced using
 expensive database byte array indices even though doing it manually is
-possible and has shown better performance. Nonetheless, a laptop with
-a `Core 2 Duo L9400` cpu and a `Corsair Force GT` SSD drive can handle
-100 profile changes per second, being just slightly disk-bound. This
-number may not seem high when compared to non-cryptographic databases,
-but 250 million profile changes per month is unlikely to become
-a limiting factor in any realistic deployment scenario. Our
-implementation also detects and reports various kinds of deviations from
-the specified protocol by other servers, even if ignoring them would be
-completely harmless -- this is intended to assist with debugging and
-validation of possible other implementations.
+possible and has shown better performance. Our implementation also
+detects and reports various kinds of deviations from the specified
+protocol by other servers, even if ignoring them would be completely
+harmless -- this is intended to assist with debugging and validation of
+possible other implementations.
 
 The consensus protocol
 ---------------------
@@ -717,6 +712,34 @@ simple interface for verifying digitally signed messages and encrypting messages
 and files: there is no per-contact setup overhead and the user only has to
 specify the operation they wish to perform and the `dename` username of the
 other party.
+
+Performance
+-----------
+
+A laptop with a `Core 2 Duo L9400` cpu and a `Corsair Force GT` SSD
+drive can handle 100 profile changes per second while acting as two
+servers simultaneously. This number may not seem high when compared to
+non-cryptographic databases, but 250 million profile changes per month
+is unlikely to become a limiting factor in any realistic deployment
+scenario.
+
+To achieve optimal security, it is important that the servers are as
+independent as possible: operated by different parties, running
+different software and distributed geographically. To see how the last
+objective impacts performance, we ran 8 [WHAT INSTANCES?] in 8 different
+datacenters on 5 continents and measured the profile modification
+throughput. As expected, performing multiple changes during the same
+consensus round keeps the consensus protocol out of the critical path
+and adding more servers results in minimal performance degradation.
+The results can be seen in Figure \ref{awsResults}.
+
+\begin{figure}[htb]
+FAKE DATA\newline
+\centerline{\resizebox{1.1\linewidth}{!}{\input{aws.pgf}}}
+\caption{Write throughput with geodistributed servers}
+\label{awsResults}
+\end{figure}
+
 
 Limitations and Future Work
 ===========================
