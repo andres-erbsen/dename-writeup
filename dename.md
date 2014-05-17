@@ -28,7 +28,7 @@ Introduction
 Many cryptographic protocols assume that either all participants know
 each other's public keys, or that there exists a trustworthy directory
 that can be used to look up these public keys. The directory system
-itself often ends up being a weak point of the overall system's
+often ends up being a weak point of the overall system's
 security. For example, compromising any one certificate authority of an
 attacker's choice breaks anything that relies on
 certificate-authority-based public key infrastructure[@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo]; a breach
@@ -41,49 +41,48 @@ and prone to human error, especially if the users are not online at the
 same time[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP]. While
 better ways to maintain a directory of users' public keys exist (for
 example [@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin),
-the security guarantee they provide is still much weaker than what is
-achieved through careful manual key exchange.
+the security guarantee they provide is still much weaker than that
+achieved by careful manual key exchange.
 
 Any system that provides a name to profile lookup service must overcome
 two important challenges: First, there has to be some protocol for
 maintaining a correct copy of the directory. In a naive single-server
-protocol this might be as simple as changing a file on the disk. Second,
-a client must be able to retrieve the profile for a specified name and
-be assured that the response is correct. Additionally, while not
-strictly necessary, an auditing mechanism can help to build confidence
-in a system.
+protocol this might be as simple as changing a file on the disk upon
+each change. Second, a client must be certain that any profile it
+accepts upon request from a server corresponds to the desired name.
+Additionally, while not strictly necessary, an accessible auditing
+mechanism can help build confidence in a system.
 
 In essence, `dename` works by having a group of predetermined but
 independently administered servers maintain identical copies of the user
 directory and collectively vouch for the correctness of the directory's
-contents. A client can contact any of these servers and any additional
-verifiers it might wish to consult to look up a profile and get a proof
-that all of them agree with the observed mapping. At least one server's
-honesty is sufficient for a unanimous result to be correct. Any update
-to a user's profile must be digitally signed by that user. This prevents
-any other party (including malicious servers) from modifying it. Our
-system differs from DNS and the x509 PKI in that it does not try to
-encode an existing mapping between names and entities, it merely allows
-any entity to register a name. This clean-slate approach allows us to
-define strict rules to which all modifications of the name-profile
-mapping have to adhere to. Third parties can verify that the core
-servers enforce these rules.
+contents. A client can contact any of these servers (and any additional
+verifiers it might wish to consult) to look up a profile and therewith
+get a proof that all contacted parties agree with the observed mapping.
+One server's honesty is sufficient for a unanimous result to be correct.
+Any update to a user's profile must be digitally signed by that user.
+This prevents anyone else (including malicious servers) from
+modifying it. Our system differs from DNS and the x509 PKI in that it
+does not try to encode an existing mapping between names and entities,
+but merely allows an entity to register a name. This clean-slate
+approach allows us to define strict rules which all modifications of
+the name-profile mapping have to respect. Third parties can verify
+that the core servers enforce these rules.
 
-We implemented a prototype of the system, showed that it can be use on
-global scale and measured its performance. We integrated `dename` with
-three different applications that previously relied on manual key
-distribution and informally evaluated the usability impact of the
-modifications.
+We implemented a prototype of the system, showed that it can be used on
+a global scale, and measured its performance. We integrated `dename`
+with three different applications that previously relied on manual key
+distribution and informally evaluated the usability and security impact
+of the modifications.
 
 Related work
 ============
 
 
-\label{relatedwork} There are a number of systems that map
-human-readable names to security-critical public information such as
+\label{relatedwork} There are multiple systems that map
+human-meaningful names to security-critical public information such as
 public keys. Subtle differences in the semantics of how the names are
-assigned can have a huge impact on the security properties of the
-system.
+assigned can have a huge impact on the system's security properties.
 
 **Single-assigner**:
 The most widely used way of associating public keys with names is the
@@ -726,8 +725,8 @@ scenario.
 To achieve optimal security, it is important that the servers are as
 independent as possible: operated by different parties, running
 different software and distributed geographically. To see how the last
-objective impacts performance, we ran 8 [WHAT INSTANCES?] in 8 different
-datacenters on 5 continents and measured the profile modification
+objective impacts performance, we ran 7 `AWS i2.2xlarge` in 7 different
+datacenters on 4 continents and measured the profile modification
 throughput. As expected, performing multiple changes during the same
 consensus round keeps the consensus protocol out of the critical path
 and adding more servers results in minimal performance degradation.
@@ -744,30 +743,31 @@ FAKE DATA\newline
 Limitations and Future Work
 ===========================
 
-First and foremost, `dename` does not deal the revocation of keys that
-have already been downloaded. While a user can make their name point to
-a different key, there is no guarantee that other users who have already
-downloaded to old key will stop using it. As the appropriate times for
+`dename` does not handle the revocation of keys that have already been
+downloaded. While a user can make their name point to a different key,
+they lack a guarantee that other users who have already downloaded the
+old key will stop using it. As the appropriate moments for
 revocation-checking are application-dependent, this needs to be tackled
 separately. Interacting with usernames can also be surprisingly tricky
-in an adversarial environment: typosquatting and homograph attacks are
-not prevented by the `dename` infrastructure; doing so is another
+in an adversarial environment: the `dename` infrastructure does not
+prevent typosquatting and homograph attacks; that is another
 responsibility of the application writer.
 
-We have shown that it is practical to maintain an exact copy of the user
-directory using consumer grade hardware. For a large-scale deployment,
-better-optimized implementations are probably desirable. In case of a single
-machine being unable to handle the churn of updates, the directory can be easily
-sharded by the hash of the name. Similarly, a single `dename` server can be
-implemented using a replicated state machine to improve availability.
+We have shown that it is practical to maintain a globally replicated
+identical copied of the user directory. For a large-scale deployment,
+better-optimized implementations are probably desirable. In case of
+a single machine being unable to handle the churn of updates, the
+directory can be easily sharded by the hash of the name. Similarly,
+a single `dename` server can be implemented using a replicated state
+machine to improve availability.
 
-If it was possible to configure the `dename` servers to make progress even if
-some number of them are not available, a larger set of servers could be
-admitted. While not requiring the approval of all servers would obviously weaken
-the security guarantee, we believe that this loss would be offset by the
-security gained from having a more diverse set of parties operating the servers.
-We are not aware of any state machine replication protocol that could be used to
-implement this.
+If it were possible to configure `dename` servers to make progress even
+if some number of them are not available, a larger set of servers could
+be admitted. While not requiring the approval of all servers would
+obviously weaken the security guarantee, we believe that this loss would
+be offset by the security gained from having a more diverse set of
+parties operating the servers. We are not aware of any state machine
+replication protocol that could be used to implement this.
 
 Conclusion
 ==========
@@ -775,15 +775,15 @@ Conclusion
 This paper presented `dename`, a public key distribution mechanism that
 provides a very strong security guarantee: as long as at least one of
 the core servers is secure and honest, a client that successfully looks
-up the profile that corresponds to a name will receive the latest that
-the name's owner uploaded more than $\Delta t + 2\lambda$ ago, where is
-$\lambda$ is an upper bound on the client's clock drift and $\Delta t$
-the server update latency. Furthermore, any third party is able to verify
-verify that the servers are following the protocol, and clients are free to
-to require some verifiers' approval in additions to the core servers'.
-Integrating `dename` with applications that currently rely on manual
-public key distribution can significantly improve their usability and
-help to avoid dangerous user errors. We also demonstrated that
-a globally distributed set of `dename` servers can provide acceptable
-performance and showed how to service lookup requests while some servers
-are down.
+up a profile corresponding to a name will receive the latest one of
+the name's profiles that the name's owner uploaded longer than $\Delta
+t + 2\lambda$ ago, where $\lambda$ is an upper bound on the client's
+clock drift and $\Delta t$ the server update latency. Furthermore, any
+third party is able to verify that the servers are following the
+protocol, and clients are free to require some verifiers' approval in
+addition to the core servers'. Integrating `dename` with applications
+that currently rely on manual public key distribution can significantly
+improve their usability and help avoid dangerous user errors. A globally
+distributed set of `dename` servers can perform profile changes with
+a solid throughput. Lookup requests can be processed even when some
+servers are down.
