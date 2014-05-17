@@ -5,21 +5,26 @@ distribution mechanism that is suitable for universal adoption.
 -->
 
 \abstract
-This paper presents `dename`, a public key distribution mechanism
-suitable for universal adoption using simple and widely understood
-mechanisms. Many applications rely on some form of directory service for
-connecting human-meaningful user identifiers (names) with application
-data associated with the user. Given a set of servers such that at
-least one of them is secure, `dename` provides the following interface:
-anybody can register a name that has not been registered already and
-modify the profile that corresponds to any name they own, but a profile
-cannot be modified without the owner's consent. Clients can efficiently
-query the state of that directory using Merkle-hashed prefix-tree
-representation of the name-profile mapping. Third parties can verify
-that all servers follow the protocol. We show how this system can be
-used to drastically improve the usability of three common
-security-critical operations: remote administration (OpenSSH), digital
-signature management (OpenPGP) and asynchronous messaging (Pond).
+This paper presents `dename`, a system for public key distribution that
+provides strong security guarantees in the face of server compromises.
+In the X.509 certificate authority system used by the web, a single
+compromised certificate authority server allows an adversary to break
+all security guarantees.  In contrast, `dename` guarantees security as
+long as just one of the servers remains honest.  To achieve these goals,
+`dename` provides a simple design built around three key ideas:
+(1) Require all servers to reach consensus on the assignment of names
+to keys, using a _blinded consensus protocol_, which prevents a subset
+of compromised servers from violating security guarantees;
+(2) Provide first-come-first-served name registration, which makes it
+easy to audit the correctness of a sequence of name operations; and
+(3) Maintain both a log of operations and a tree-based summary of the
+current state, which enables efficient client name lookups as well as
+third-party auditing.
+Using a prototype implementation of `dename`, we demonstrate that
+it is easy to incorporate `dename` into existing applications,
+including OpenSSH, GPG, and Pond.
+Experimental results demonstrate that `dename` achieves good
+performance, even with a geographically distributed set of servers.
 \endabstract
 
 Introduction
