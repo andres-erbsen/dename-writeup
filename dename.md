@@ -557,25 +557,25 @@ core server.
 Implementation
 ==============
 
-\label{implementation}
-We implemented the `dename` server and client libraries in less than
-4000 lines of `go` using `postgresql` for storage. The current
-implementation is a compromise between performance and
-understandability. For example, independent tasks are done in parallel
-and in-process state is kept to eliminate redundant database accesses
-and server signature verifications, but client signatures are verified
-twice in some scenarios, batch signature verification is not used at all,
-and some invariants are enforced using expensive database byte array
-indices even though doing it manually is possible and has shown better
-performance. Nonetheless, a laptop with a `Core 2 Duo L9400` cpu and a
-`Corsair Force GT` SSD drive can handle 100 profile changes per second,
-being just slightly disk-bound. This number may not seem high when
-compared to non-cryptographic databases, but 250 million profile changes
-per month is unlikely to become a limiting factor in any realistic
-deployment scenario. Our implementation also detects and reports various
-kinds of deviations from the specified protocol by other servers, even if
-ignoring them would be completely harmless -- this is intended to assist
-with debugging and validation of possible other implementations.
+\label{implementation} We implemented a prototype `dename` server and
+the client libraries in less than 4000 lines of `go` using `postgresql`
+for storage. The current implementation is a compromise between
+performance and understandability. For example, independent tasks are
+done in parallel and in-process state is kept to eliminate redundant
+database accesses and server signature verifications, but client
+signatures are verified twice in some scenarios, batch signature
+verification is not used at all, and some invariants are enforced using
+expensive database byte array indices even though doing it manually is
+possible and has shown better performance. Nonetheless, a laptop with
+a `Core 2 Duo L9400` cpu and a `Corsair Force GT` SSD drive can handle
+100 profile changes per second, being just slightly disk-bound. This
+number may not seem high when compared to non-cryptographic databases,
+but 250 million profile changes per month is unlikely to become
+a limiting factor in any realistic deployment scenario. Our
+implementation also detects and reports various kinds of deviations from
+the specified protocol by other servers, even if ignoring them would be
+completely harmless -- this is intended to assist with debugging and
+validation of possible other implementations.
 
 The consensus protocol
 ---------------------
@@ -749,5 +749,18 @@ implement this.
 Conclusion
 ==========
 
-This paper presented `dename`, a public key distribution mechanism
-XXX.  XXX re-state points from the abstract/intro XXX.
+This paper presented `dename`, a public key distribution mechanism that
+provides a very strong security guarantee: as long as at least one of
+the core servers is secure and honest, a client that successfully looks
+up the profile that corresponds to a name will receive the latest that
+the name's owner uploaded more than $\Delta t + 2\lambda$ ago, where is
+$\lambda$ is an upper bound on the client's clock drift and $\Delta t$
+the server update latency. Furthermore, any third party is able to verify
+verify that the servers are following the protocol, and clients are free to
+to require some verifiers' approval in additions to the core servers'.
+Integrating `dename` with applications that currently rely on manual
+public key distribution can significantly improve their usability and
+help to avoid dangerous user errors. We also demonstrated that
+a globally distributed set of `dename` servers can provide acceptable
+performance and showed how to service lookup requests while some servers
+are down.
