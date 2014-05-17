@@ -5,75 +5,157 @@ distribution mechanism that is suitable for universal adoption.
 -->
 
 \abstract
-This paper presents `dename`, a public key distribution mechanism
-suitable for universal adoption using simple and widely understood
-mechanisms. Many applications rely on some form of directory service for
-connecting human-meaningful user identifiers (names) with application
-data associated with the user. Given a set of servers such that at
-least one of them is secure, `dename` provides the following interface:
-anybody can register a name that has not been registered already and
-modify the profile that corresponds to any name they own, but a profile
-cannot be modified without the owner's consent. Clients can efficiently
-query the state of that directory using Merkle-hashed prefix-tree
-representation of the name-profile mapping. Third parties can verify
-that all servers follow the protocol. We show how this system can be
-used to drastically improve the usability of three common
-security-critical operations: remote administration (OpenSSH), digital
-signature management (OpenPGP) and asynchronous messaging (Pond).
+This paper presents `dename`, a system for public key distribution that
+provides strong security guarantees in the face of server compromises.
+In the X.509 certificate authority system used by the web, a single
+compromised certificate authority server allows an adversary to break
+all security guarantees.  In contrast, `dename` guarantees security as
+long as just one of the servers remains honest.  To achieve these goals,
+`dename` provides a simple design built around three key ideas:
+(1) Require all servers to reach consensus on the assignment of names
+to keys, using a _blinded consensus protocol_, which prevents a subset
+of compromised servers from violating security guarantees;
+(2) Provide first-come-first-served name registration, which makes it
+easy to audit the correctness of a sequence of name operations; and
+(3) Maintain both a log of operations and a tree-based summary of the
+current state, which enables efficient client name lookups as well as
+third-party auditing.
+Using a prototype implementation of `dename`, we demonstrate that
+it is easy to incorporate `dename` into existing applications,
+including OpenSSH, GPG, and Pond.
+Experimental results demonstrate that `dename` achieves good
+performance, even with a geographically distributed set of servers.
 \endabstract
 
 Introduction
 ============
 
-Many cryptographic protocols assume that either all participants know
-each other's public keys, or that there exists a trustworthy directory
-that can be used to look up these public keys. The directory system
-often ends up being a weak point of the overall system's
-security. For example, compromising any one certificate authority of an
-attacker's choice breaks anything that relies on
-certificate-authority-based public key infrastructure[@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo]; a breach
-of the Kerberos domain controller would result in a total compromise of
-the security domain. For this reason, security-critical applications try
-to work around the need for a directory service; for example, OpenSSH,
-OpenPGP, OTR and Pond have users manually communicate the critical bits
-of authenticating information to each other. This approach is tedious
-and prone to human error, especially if the users are not online at the
-same time[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP]. While
-better ways to maintain a directory of users' public keys exist (for
+A critical aspect of most cryptographic systems is the association of
+users' public keys to application-level user names, and many systems
+rely on a trusted directory service that associates public keys with
+user identities.  For example, web browsers rely on a set of certificate
+authorities to sign X.509 certificates that bind a web site's hostname to
+that web site's public key, and allow users to know what web site they are
+visiting.  An important benefit of such a design lies in its simplicity
+for application developers and end users.  The directory service takes
+care of mapping keys to names; the application can assume the existence
+of a function to lookup the key for a given name, or verify a name-to-key
+mapping, as in X.509 certificates; and users can likewise assume a perfect
+oracle that associates appropriate keys with user-visible identities.
+
+Unfortunately, most directory-based systems, such as the X.509 certificate
+infrastructure used on the web, suffer from several problems, as follows.
+
+First, compromises of trusted directory servers, such as X.509
+certificate authorities, enable an adversary to completely break
+the assumptions that applications and end users about name-to-key
+mappings [@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo].
+For instance, recent compromises of the DigiNotar and Comodo certificate
+authorities enabled adversaries to impersonate well-known web sites
+such as Google.  As the directory service grows, adding more servers is
+likely to decrease overall security, since it suffices for an adversary to
+compromise any one of the servers in order to break the system's security.
+
+Second, most directory-based systems are based on the premise that the
+directory service will verify whether a user really owns a particular
+name (such as a domain name, a person's full name, or an email address).
+This is appealing because it associates public keys with existing
+real-world identities.  Unfortunately, it is exceedingly difficult to
+formalize what it means for a user to own a non-cryptographic name, or to
+audit whether a directory service properly verified the ownership of any
+given name.  Not surprisingly, this has led to high-profile mistakes,
+such as Verisign signing certificates containing Microsoft's name for
+a party that fraudulently claimed to be Microsoft.
+
+Third, clients must be able to obtain and verify name-to-key mappings
+from the directory service.  Most directory services rely on long-lived
+certificates issued to name owners to address this problem, which makes
+it difficult for a client to determine if a name-to-key mapping is still
+valid, and makes it difficult for a name owner to revoke a mapping in a
+timely manner.  As a result, even if a name owner knows that the mapping
+is no longer valid (e.g., because the key has been compromised), clients
+may still accept the old mapping and thus the old key.
+
+One workaround for these problems, used by many security-critical
+systems, is to avoid the assumption of a single directory service,
+and instead ask for help from the user.  For example, OpenSSH, OpenPGP,
+OTR, and Pond all require users to manually communicate critical bits
+of authenticating information to each other.  While this improves
+security for expert users, it is unfortunately tedious and error-prone,
+can be difficult to use if the users are not online at the same time
+[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP], and can in some
+cases provide weaker security guarantees than a directory-based design.
+
+<!--
+TO RELATED WORK:
+
+While better ways to maintain a directory of users' public keys exist (for
 example [@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin),
-the security guarantee they provide is still much weaker than that
-achieved by careful manual key exchange.
+the security guarantee they provide is still much weaker than what is
+achieved through careful manual key exchange.
+-->
 
-Any system that provides a name to profile lookup service must overcome
-two important challenges: First, there has to be some protocol for
-maintaining a correct copy of the directory. In a naive single-server
-protocol this might be as simple as changing a file on the disk upon
-each change. Second, a client must be certain that any profile it
-accepts upon request from a server corresponds to the desired name.
-Additionally, while not strictly necessary, an accessible auditing
-mechanism can help build confidence in a system.
+This paper presents `dename`, a public key distribution system that
+addresses the above challenges and provides a practical design that
+integrates easily into existing systems such as OpenSSH, GPG, and Pond,
+without requiring any additional user effort for key management.
+At a high level, `dename` works by having a group of well-known,
+independently administered servers maintain identical copies of the
+directory.  Clients can contact any server to register, update, or lookup
+name-to-key mappings; updates must be signed by the user's key.  As long
+as just one of the servers remains honest, `dename` guarantees that
+the name-to-key mapping is correct.  An additional set of third-party
+_verifiers_ audits the work of servers and can be used by clients to
+increase the level of assurance.
 
-In essence, `dename` works by having a group of predetermined but
-independently administered servers maintain identical copies of the user
-directory and collectively vouch for the correctness of the directory's
-contents. A client can contact any of these servers (and any additional
-verifiers it might wish to consult) to look up a profile and therewith
-get a proof that all contacted parties agree with the observed mapping.
-One server's honesty is sufficient for a unanimous result to be correct.
-Any update to a user's profile must be digitally signed by that user.
-This prevents anyone else (including malicious servers) from
-modifying it. Our system differs from DNS and the x509 PKI in that it
-does not try to encode an existing mapping between names and entities,
-but merely allows an entity to register a name. This clean-slate
-approach allows us to define strict rules which all modifications of
-the name-profile mapping have to respect. Third parties can verify
-that the core servers enforce these rules.
+The design of `dename` is purposely simple, and `dename` builds on
+several key ideas:
 
-We implemented a prototype of the system, showed that it can be used on
-a global scale, and measured its performance. We integrated `dename`
-with three different applications that previously relied on manual key
-distribution and informally evaluated the usability and security impact
-of the modifications.
+First, instead of allowing _any_ server to assign a key to a name,
+`dename` requires _all_ servers to reach consensus on the assignment
+of names to keys, and the order in which these assignments occurred.
+This means that an adversary that wants to change the key for a name,
+or pretend to have already registered an existing name, would have
+to compromise all of the servers responsible for registering names,
+instead of just one server.  `dename` introduces a round-based _blinded
+consensus protocol_ that allows servers to reach consensus on the set
+of registered names without allowing a compromised server to subvert
+new names by introducing its own concurrent registrations.  In order to
+further improve accountability of name registration servers, `dename`
+also makes it possible for arbitrary third-party verifiers to check that
+all registrations have been completed correctly.
+
+Second, `dename` eliminates the notion of a user apriori owning any name.
+Instead, `dename` provides first-come-first-served name registration.
+The key advantage of this design choice lies in the fact that it is
+easy to audit algorithmically: if a name was not previously registered,
+it can be registered, and if a name was already registered, it cannot
+be registered again.  Since no human input or real-world checks are
+required to determine if a name registration was performed properly,
+all name registration servers can mechanically check the work of all
+other servers, and even third-party verifiers can make sure that all
+name registration servers did their work correctly.
+
+Third, `dename` servers construct two authenticated data structures:
+a hash-chained log of all name registration operations, and a Merkle
+tree summarizing the current state of all registered names.  The tree
+allows clients to efficiently lookup and verify name-to-key mappings,
+and ensures freshness with the help of periodic timestamps.  The log
+enables servers to cross-check each others' registrations, and also
+enables third-party verifiers to make sure all name operations in the
+log are legitimate and correspond to the summary in the tree.
+
+<!-- What about revocation in dename?  -->
+
+To demonstrate the practicality of `dename`, we implemented a prototype in
+Go, and integrated `dename` with OpenSSH, GPG, and Pond.  These systems
+previously relied on users to manually transfer and authenticate keys.
+With `dename`, users achieve strong security guarantees with the
+convenience of a global PKI name-to-key mapping, without error-prone
+manual steps.  Experimental results show that integrating `dename`
+into an existing system requires little effort, and that `dename`
+servers can achieve good performance even in a large, geographically
+distributed configuration.
 
 Related work
 ============
@@ -157,6 +239,14 @@ they require out of band. To register a name, modify a profile, or look
 up the profile associated with an existing name, a client will contact
 a server of its own choice. The servers will only let a client modify
 its own profile.
+
+We envision that `dename`'s first-come-first-served registration policy
+can be easily incorporated into existing systems, by simply changing the
+order of name registration.  For example, instead of first registering
+for an account with an email provider, and then creating a mapping for
+that name, the email provider should first register an appropriate name
+for the user in `dename`, and if that succeeds, create an email account
+under that user name.
 
 The discussion of the operation of this system is organized as follows:
 Section \ref{relatedwork} contains a short review of several systems
@@ -764,10 +854,10 @@ machine to improve availability.
 If it were possible to configure `dename` servers to make progress even
 if some number of them are not available, a larger set of servers could
 be admitted. While not requiring the approval of all servers would
-obviously weaken the security guarantee, we believe that this loss would
-be offset by the security gained from having a more diverse set of
-parties operating the servers. We are not aware of any state machine
-replication protocol that could be used to implement this.
+obviously weaken the security guarantee, we believe that this loss is
+offset by the security gained from having a more diverse set of parties
+operating the servers. We are not aware of any state machine replication
+protocol that could be used to implement this.
 
 Conclusion
 ==========
