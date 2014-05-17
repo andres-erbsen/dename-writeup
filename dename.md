@@ -35,11 +35,11 @@ users' public keys to application-level usernames, and many systems
 rely on a trusted directory service that associates public keys with
 user identities.  For example, web browsers rely on a set of certificate
 authorities to sign X.509 certificates that bind a web site's hostname to
-that web site's public key, and allow users to know what web site they are
+that web site's public key and allow users to know what web site they are
 visiting.  An important benefit of such a design lies in its simplicity
 for application developers and end users.  The directory service takes
 care of mapping keys to names; the application can assume the existence
-of a function to lookup the key for a given name, or verify a name-to-key
+of a function to lookup the key for a given name or verify a name-to-key
 mapping, as in X.509 certificates; and users can likewise assume a perfect
 oracle that associates appropriate keys with user-visible identities.
 
