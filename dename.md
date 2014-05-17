@@ -94,37 +94,63 @@ This paper presents `dename`, a public key distribution system that
 addresses the above challenges and provides a practical design that
 integrates easily into existing systems such as OpenSSH, GPG, and Pond,
 without requiring any additional user effort for key management.
+At a high level, `dename` works by having a group of well-known,
+independently administered servers maintain identical copies of the
+directory.  Clients can contact any server to register, update, or lookup
+name-to-key mappings; updates must be signed by the user's key.  As long
+as just one of the servers remains honest, `dename` guarantees that
+the name-to-key mapping is correct.  An additional set of third-party
+_verifiers_ audits the work of servers and can be used by clients to
+increase the level of assurance.
+
 The design of `dename` is purposely simple, and `dename` builds on
 several key ideas:
 
-First, instead of allowing any server to assign a key to a name,
-XXX
+First, instead of allowing _any_ server to assign a key to a name,
+`dename` requires _all_ servers to reach consensus on the assignment
+of names to keys, and the order in which these assignments occurred.
+This means that an adversary that wants to change the key for a name,
+or pretend to have already registered an existing name, would have
+to compromise all of the servers responsible for registering names,
+instead of just one server.  `dename` introduces a round-based _blinded
+consensus protocol_ that allows servers to reach consensus on the set
+of registered names without allowing a compromised server to subvert
+new names by introducing its own concurrent registrations.  In order to
+further improve accountability of name registration servers, `dename`
+also makes it possible for arbitrary third-party verifiers to check that
+all registrations have been completed correctly.
 
+Second, `dename` eliminates the notion of a user apriori owning any name.
+Instead, `dename` provides first-come-first-served name registration.
+The key advantage of this design choice lies in the fact that it is
+easy to audit algorithmically: if a name was not previously registered,
+it can be registered, and if a name was already registered, it cannot
+be registered again.  Since no human input or real-world checks are
+required to determine if a name registration was performed properly,
+all name registration servers can mechanically check the work of all
+other servers, and even third-party verifiers can make sure that all
+name registration servers did their work correctly.
 
-
-In essence, `dename` works by having a group of predetermined but
-independently administered servers maintain identical copies of the user
-directory and collectively vouch for the correctness of the directory's
-contents. A client can contact any of these servers and any additional
-verifiers it might wish to consult to look up a profile and get a proof
-that all of them agree with the observed mapping. At least one server's
-honesty is sufficient for a unanimous result to be correct. Any update
-to a user's profile must be digitally signed by that user. This prevents
-any other party (including malicious servers) from modifying it. Our
-system differs from DNS and the x509 PKI in that it does not try to
-encode an existing mapping between names and entities, it merely allows
-any entity to register a name. This clean-slate approach allows us to
-define strict rules to which all modifications of the name-profile
-mapping have to adhere to. Third parties can verify that the core
-servers enforce these rules.
+Third, `dename` servers construct two authenticated data structures:
+a hash-chained log of all name registration operations, and a Merkle
+tree summarizing the current state of all registered names.  The tree
+allows clients to efficiently lookup and verify name-to-key mappings,
+and ensures freshness with the help of periodic timestamps.  The log
+enables servers to cross-check each others' registrations, and also
+enables third-party verifiers to make sure all name operations in the
+log are legitimate and correspond to the summary in the tree.
 
 <!-- What about revocation in dename?  -->
 
-We implemented a prototype of the system, showed that it can be use on
-global scale and measured its performance. We integrated `dename` with
-three different applications that previously relied on manual key
-distribution and informally evaluated the usability impact of the
-modifications.
+To demonstrate the practicality of `dename`, we implemented a prototype in
+Go, and integrated `dename` with OpenSSH, GPG, and Pond.  These systems
+previously relied on users to manually transfer and authenticate keys.
+With `dename`, users achieve strong security guarantees with the
+convenience of a global PKI name-to-key mapping, without error-prone
+manual steps.  Experimental results show that integrating `dename`
+into an existing system requires little effort, and that `dename`
+servers can achieve good performance even in a large, geographically
+distributed configuration.
 
 
 Related work
@@ -210,6 +236,14 @@ they require out of band. To register a name, modify a profile, or look
 up the profile associated with an existing name, a client will contact
 a server of its own choice. The servers will only let a client modify
 its own profile.
+
+We envision that `dename`'s first-come-first-served registration policy
+can be easily incorporated into existing systems, by simply changing the
+order of name registration.  For example, instead of first registering
+for an account with an email provider, and then creating a mapping for
+that name, the email provider should first register an appropriate name
+for the user in `dename`, and if that succeeds, create an email account
+under that user name.
 
 The discussion of the operation of this system is organized as follows:
 Section \ref{relatedwork} contains a short review of several systems
