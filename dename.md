@@ -234,8 +234,14 @@ a verifier is not available. We assume that the clients obtain the
 public keys of the core servers and any verifiers whose confirmation
 they require out of band. To register a name, modify a profile, or look
 up the profile associated with an existing name, a client will contact
-a server of its own choice. The servers will only let a client modify
-its own profile.
+a server of its own choice. The servers prevent clients from modifying
+each others' profiles by requiring the change request to be digitally
+signed with a key designated in that profile.
+
+A `dename` client exposes the following API: `modify(secretKey, name,
+newProfile)` will ask the servers to make the name point to the new
+profile; the secret key is used to sign the request. `lookup(name) ->
+profile` can be used to retrieve profiles.
 
 We envision that `dename`'s first-come-first-served registration policy
 can be easily incorporated into existing systems, by simply changing the
