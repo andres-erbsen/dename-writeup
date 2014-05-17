@@ -9,7 +9,7 @@ This paper presents `dename`, a public key distribution mechanism
 suitable for universal adoption using simple and widely understood
 mechanisms. Many applications rely on some form of directory service for
 connecting human-meaningful user identifiers (names) with application
-data associated with that user. Given a set of servers such that at
+data associated with the user. Given a set of servers such that at
 least one of them is secure, `dename` provides the following interface:
 anybody can register a name that has not been registered already and
 modify the profile that corresponds to any name they own, but a profile
