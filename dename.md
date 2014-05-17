@@ -27,12 +27,11 @@ Introduction
 
 Many cryptographic protocols assume that either all participants know
 each other's public keys, or that there exists a trustworthy directory
-that can be used to look up these public keys. The security of the
-directory system itself often ends up being a weak point of the overall
-system's security: compromising any one certificate authority of an
+that can be used to look up these public keys. The directory system
+itself often ends up being a weak point of the overall system's
+security. For example, compromising any one certificate authority of an
 attacker's choice breaks anything that relies on
-certificate-authority-based public key infrastructure
-[@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo]; a breach
+certificate-authority-based public key infrastructure[@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo]; a breach
 of the Kerberos domain controller would result in a total compromise of
 the security domain. For this reason, security-critical applications try
 to work around the need for a directory service; for example, OpenSSH,
@@ -44,6 +43,15 @@ better ways to maintain a directory of users' public keys exist (for
 example [@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin),
 the security guarantee they provide is still much weaker than what is
 achieved through careful manual key exchange.
+
+Any system that provides a name to profile lookup service must overcome
+two important challenges: First, there has to be some protocol for
+maintaining a correct copy of the directory. In a naive single-server
+protocol this might be as simple as changing a file on the disk. Second,
+a client must be able to retrieve the profile for a specified name and
+be assured that the response is correct. Additionally, while not
+strictly necessary, an auditing mechanism can help to build confidence
+in a system.
 
 In essence, `dename` works by having a group of predetermined but
 independently administered servers maintain identical copies of the user
@@ -89,7 +97,7 @@ names[@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo].
 Other systems that permit a single party to change the mapping, for
 example DNS and Keybase, are subject to similar issues. Secure
 *lookup* protocols such as DNSSEC or DNSCurve do not protect against
-server compromise either.
+authority compromise either.
 
 Certificate Transparency[@CertificateTransparancy] provides a means to
 detect certificate authority misbehavior. It has been argued that the
@@ -97,7 +105,7 @@ threat of public scrutiny would deter intentional violations of the
 certification practices and provide additional motivation for the
 certificate authorities to keep their systems secure. The effectiveness
 of such indirect measures is yet to be determined, and thus currently
-insufficient to state a strong security guarantee. In DANE[daneRFC], the
+insufficient to state a strong security guarantee. In DANE[@daneRFC], the
 manager of a DNS domain assigns public keys to its subdomains. This
 limits the effects of the compromise of an assigner to its subtree, but
 the root is still a central point of failure.
@@ -146,10 +154,10 @@ servers, except that all core servers are not required to know about
 a verifier and the core servers will continue to operate even when
 a verifier is not available. We assume that the clients obtain the
 public keys of the core servers and any verifiers whose confirmation
-they require. To register a name, modify a profile, or look up the
-profile associated with an existing name, a client will contact a server
-of its own choice. The servers will only let a client modify its own
-profile.
+they require out of band. To register a name, modify a profile, or look
+up the profile associated with an existing name, a client will contact
+a server of its own choice. The servers will only let a client modify
+its own profile.
 
 The discussion of the operation of this system is organized as follows:
 Section \ref{relatedwork} contains a short review of several systems
@@ -182,14 +190,14 @@ Maintaining consensus
 =====================
 
 \label{consensusSection} Changes to the user directory happen in
-discrete rounds: each server proposes a set of changes and all servers
-apply them in lockstep. We use a verified broadcast primitive (described
-below) to ensure that all servers receive the same set of requested
-changes, and the algorithm for handling them is deterministic.
-Additionally, we describe some malicious behavior that servers could
-engage in which would not directly violate the security claim, but is
-nevertheless undesirable, and modify the protocol to counteract that
-behavior.
+discrete rounds: every $\Delta t$ (currently 3 seconds), each server
+proposes a set of changes and all servers apply them in lockstep. We use
+a verified broadcast primitive (described below) to ensure that all
+servers receive the same set of requested changes, and the algorithm for
+handling them is deterministic. Additionally, we describe some malicious
+behavior that servers could engage in which would not directly violate
+the security claim, but is nevertheless undesirable, and modify the
+protocol to counteract that behavior.
 
 The physical analogy of verified broadcast is a public announcement:
 everybody learns what the announcer has to say and can be sure that
@@ -268,8 +276,8 @@ Table \ref{schematable} shows the fields stored by `dename` with example data. <
 \begin{centering}
 \begin{tabular}{@{} l l l l @{}}
 \small name & \small pubkey & \small profile & \small last change \\ \hline
-\small alice & $pk_a$ & $\text{\texttt{}}pk_\texttt{ssh},\text{\texttt{ }} pk_\text{x509}$ & \small 2014-04-10 \\
-\small bob & $pk_b$ & \texttt{bob@example.com, }$pk_\text{\texttt{gpg}}$ & \small 2013-09-12 \\ \hline
+\small alice & $pk_a$ & $\text{\texttt{}}pk_\texttt{ssh},\text{\texttt{ }} pk_\text{x509}$ & \small 1 (2014-01-11) \\
+\small bob & $pk_b$ & \texttt{bob@mit.edu, }$pk_\text{\texttt{gpg}}$ & \small 30000 (2014-01-12) \\ \hline
 \end{tabular}
 \end{centering}
 \caption{\texttt{dename} directory schema}
@@ -408,7 +416,6 @@ keys, along with the associated Merkle hash paths. The client has to
 verify that both hash paths result give the correct root hash and that
 there are indeed no nodes in between: up to their common ancestor, the
 former only has left siblings and the latter only has right siblings.
-*We have not implemented this mechanism.*
 
 Freshness
 =========
@@ -450,7 +457,7 @@ it may accept a mapping that was timestamped $2\lambda$ ago. All
 changes made more than $\Delta t + 2\lambda$ ago must be reflected in
 the mapping. However, we do not see it as a problem because we expect
 security-critical profile changes to be rare and thus consider waiting
-for them acceptable. Furthermore, if strict security guarantees are not
+for them acceptable. If strict security guarantees are not
 required and a server can be trusted to return the latest mapping --
 which is at most $\Delta t$ old -- we can assume that all changes made
 at least $\Delta t$ (rather than $\Delta t + 2 \lambda$) ago are
@@ -527,7 +534,7 @@ will be annotated with the old profile, its Merkle path and all siblings
 used to calculate the hashes for the new Merkle path. The verifier will
 then use the lookup procedure to verify the old mapping and calculate
 the new root hash using the server-provided values instead of storing a
-local copy of the whole tree. *We have not implemented this mechanism.*
+local copy of the whole tree.
 
 Coherent caching
 ----------------
@@ -561,9 +568,9 @@ twice in some scenarios, batch signature verification is not used at all,
 and some invariants are enforced using expensive database byte array
 indices even though doing it manually is possible and has shown better
 performance. Nonetheless, a laptop with a `Core 2 Duo L9400` cpu and a
-`Corsair Force GT` SSD drive can handle 300 profile changes per second,
+`Corsair Force GT` SSD drive can handle 100 profile changes per second,
 being just slightly disk-bound. This number may not seem high when
-compared to non-cryptographic databases, but 750 million profile changes
+compared to non-cryptographic databases, but 250 million profile changes
 per month is unlikely to become a limiting factor in any realistic
 deployment scenario. Our implementation also detects and reports various
 kinds of deviations from the specified protocol by other servers, even if
