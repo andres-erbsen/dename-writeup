@@ -213,25 +213,30 @@ competitive use of resources results in high operating costs[@BitcoinElectricity
 Overview
 ========
 
-The set of servers and the namespace are fixed in one deployment of
-`dename`. Each server (and each verifier) has a signing key and knows
+A deployment of `dename` has a fixed namespace and set of servers.
+Each server (and each verifier) has a signing key and knows
 the public key of every other server. To modify a name-profile mapping,
-all core servers have synchronize with each other and thus if one of
+all core servers have synchronize with each other, so if one of
 them is down, no progress can be made. Verifiers are the same as core
 servers, except that all core servers are not required to know about
 a verifier and the core servers will continue to operate even when
 a verifier is not available. We assume that the clients obtain the
 public keys of the core servers and any verifiers whose confirmation
 they require out of band. To register a name, modify a profile, or look
-up the profile associated with an existing name, a client will contact
-a server of its own choice. The servers prevent clients from modifying
+up the profile associated with an existing name, a client can contact
+a server of its choice. The servers prevent clients from modifying
 each others' profiles by requiring the change request to be digitally
 signed with a key designated in that profile.
 
-A `dename` client exposes the following API: `modify(secretKey, name,
-newProfile)` will ask the servers to make the name point to the new
-profile; the secret key is used to sign the request. `lookup(name) ->
-profile` can be used to retrieve profiles.
+A `dename` server exposes the following API:
+
+* `modify(name, newProfile, newSignature, oldSignature)`:  Make the name point to the new
+profile. `newSignature` is a signature of the request with the key contained in the new profile.
+If an old profile exists, `oldSignature` is a signature of the request with the old key.
+* `getRoot()`:  Return the hash of the current directory state signed by all servers.
+* `lookup(name) -> (profile, proof)`:  Return the profile that the name points to,
+along with a proof that the name-profile pair is present in the directory. Clients can check the proof
+against the latest root hash.
 
 We envision that `dename`'s first-come-first-served registration policy
 can be easily incorporated into existing systems, by simply changing the
@@ -248,25 +253,24 @@ that seek to provide similar properties. In Section
 each other to apply changes to the directory while ensuring that they
 end up with identical results. In general, this is the problem of
 replicating a state machine in the presence of malicious faults, but the
-case we tackle is simpler: we give up being able to tolerate stopping
-failures by requiring all parties to participate. We describe the
+case we tackle is simpler: we require all parties to participate, sacrificing
+availability for consistency. We describe the
 procedure of looking up users' profiles in Section \ref{lookupSection}:
 We start with a trivial but inefficient protocol and end up storing the
 directory in a Merkle hashed radix tree and serving its branches. We
 argue that if a lookup succeeds, then the result must have been accepted
 by all servers. In Section \ref{freshness} we tackle the issue of
-freshness, that is, we provide a system for ensuring that the result
-represents the most up-to-date state of the system. In Section
+freshness; that is, we provide a system for ensuring that the result
+represents an up-to-date state of the system. In Section
 \ref{verifiers} we show how independent verifiers can be added to this
 system in the spirit of Certificate
 Transparency[@CertificateTransparancy]. Given the Merkle tree
 data structure, this addition is relatively
 straightforward and, as a side effect, enables efficient coherent
-caching of lookup results. Finally, we describe the specifics of our
+caching of lookup results. We describe the specifics of our
 implementation of the protocol described in this paper in Section
-\ref{implementation} and evaluate the impact of its use on the usability
-of two security-critical applications: asynchronous messaging and remote
-server administration (Section \ref{evaluation}).
+\ref{implementation} and its performance in Section \ref{performance}. Finally, we evaluate the impact of our system on the usability
+of three security-critical applications: digital signature management and public key encryption (OpenPGP), server administration (OpenSSH), and asynchronous messaging (Pond); see Section \ref{applicability}.
 
 Maintaining consensus
 =====================
@@ -275,8 +279,8 @@ Maintaining consensus
 discrete rounds: every $\Delta t$ (currently 3 seconds), each server
 proposes a set of changes and all servers apply them in lockstep. We use
 a verified broadcast primitive (described below) to ensure that all
-servers receive the same set of requested changes, and the algorithm for
-handling them is deterministic. Additionally, we describe some malicious
+servers receive the same set of requested changes, and we handle the changes
+in a deterministic order. Additionally, we describe some malicious
 behavior that servers could engage in which would not directly violate
 the security claim, but is nevertheless undesirable, and modify the
 protocol to counteract that behavior.
@@ -730,7 +734,6 @@ bits and existing adoption in real-world systems.
 Evaluation
 ==========
 
-\label{evaluation}
 To see whether `dename` is suitable for large-scale adoption, we
 evaluated the two aspects of `dename` which are the most different from
 the present standards. First, it is important to check that the name
@@ -815,23 +818,9 @@ Performance
 -----------
 
 We ran our `dename` prototype on 7 AWS `i2.2xlarge` instances in
-7 different datacenters on 4 continents and measured the profile
-modification throughput. As expected, performing multiple changes during
-the same consensus round keeps the consensus protocol out of the
-critical path and adding more servers results in minimal performance
-degradation. The results can be seen in Figure \ref{awsResults}.
-
-\begin{figure}[htb]
-FAKE DATA\newline
-\centerline{\resizebox{1.1\linewidth}{!}{\input{aws.pgf}}}
-\caption{Write throughput with geodistributed servers}
-\label{awsResults}
-\end{figure}
-
-150 writes per second may not seem high when compared to
-non-cryptographic databases, but 400 million profile changes per month
-is unlikely to become a limiting factor in any realistic deployment
-scenario.
+7 different datacenters on 4 continents. The servers achieved 157 profile writes per second.
+This is not high compared to non-cryptographic databases, but since it equals 400 million profile changes per month, it is unlikely to become a limiting factor in any realistic deployment
+scenario. As the number of servers increases, the performance does not degrade significantly: the throughput bottleneck in the profile modification process is synchronizing the individual changes to each server's disk and not synchronizing the changes between the servers.
 
 Limitations and Future Work
 ===========================
@@ -865,18 +854,9 @@ protocol that could be used to implement this.
 Conclusion
 ==========
 
-This paper presented `dename`, a public key distribution mechanism that
+We present `dename`, a public key distribution mechanism that
 provides a very strong security guarantee: as long as at least one of
 the core servers is secure and honest, a client that successfully looks
-up a profile corresponding to a name will receive the latest one of
-the name's profiles that the name's owner uploaded longer than $\Delta
-t + 2\lambda$ ago, where $\lambda$ is an upper bound on the client's
-clock drift and $\Delta t$ the server update latency. Furthermore, any
-third party is able to verify that the servers are following the
-protocol, and clients are free to require some verifiers' approval in
-addition to the core servers'. Integrating `dename` with applications
-that currently rely on manual public key distribution can significantly
-improve their usability and help avoid dangerous user errors. A globally
-distributed set of `dename` servers can perform profile changes with
-a solid throughput. Lookup requests can be processed even when some
-servers are down.
+up a profile corresponding to a name will receive a fresh, correct response.
+Thus, `dename` can replace manual public key distribution in a variety of security-critical applications,
+improving usability and decreasing the potential for user errors. 
