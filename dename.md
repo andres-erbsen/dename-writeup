@@ -233,8 +233,8 @@ signed with a key designated in that profile.
 A `dename` server exposes the following API:
 
 * `modify(name, newProfile, newSignature, oldSignature)`:  Make the name point to the new
-profile. `newSignature` is a signature of the request with the key contained in the new profile.
-If an old profile exists, `oldSignature` is a signature of the request with the old key.
+profile. `newSignature` is a signature on the request with the key contained in the new profile.
+If an old profile exists, `oldSignature` is a signature on the request with the old key.
 * `getRoot()`:  Return the hash of the current directory state signed by all servers.
 * `lookup(name) -> (profile, proof)`:  Return the profile that the name points to,
 along with a proof that the name-profile pair is present in the directory. Clients can check the proof
@@ -243,8 +243,8 @@ against the latest root hash.
 We envision that `dename`'s first-come-first-served registration policy
 can be easily incorporated into existing systems, by simply changing the
 order of name registration.  For example, instead of first registering
-for an account with an email provider, and then creating a mapping for
-that name, the email provider should first register an appropriate name
+for an account with an email client, and then creating a mapping for
+that name, the email client should first register an appropriate name
 for the user in `dename`, and if that succeeds, create an email account
 under that username.
 
@@ -284,7 +284,7 @@ a verified broadcast primitive (described below) to ensure that all
 servers receive the same set of requested changes, and we handle the changes
 in a deterministic order. Additionally, we describe some malicious
 behavior that servers could engage in which would not directly violate
-the security claim, but is nevertheless undesirable, and modify the
+the security claim, but is nevertheless undesirable, and _blind_ the
 protocol to counteract that behavior.
 
 The physical analogy of verified broadcast is a public announcement:
@@ -364,8 +364,8 @@ Table \ref{schematable} shows the fields stored by `dename` with example data. <
 \begin{centering}
 \begin{tabular}{@{} l l l l @{}}
 \small name & \small pubkey & \small profile & \small last change \\ \hline
-\small alice & $pk_a$ & $\text{\texttt{}}pk_\texttt{ssh},\text{\texttt{ }} pk_\text{x509}$ & \small 1 (2014-01-11) \\
-\small bob & $pk_b$ & \texttt{bob@mit.edu, }$pk_\text{\texttt{gpg}}$ & \small 30000 (2014-01-12) \\ \hline
+\small alice & $pk_a$ & $\text{\texttt{}}pk_\texttt{ssh},\text{\texttt{ }} pk_\text{x509}$ & \small 18926 (2014-01-11) \\
+\small bob & $pk_b$ & \texttt{bob@mit.edu, }$pk_\text{\texttt{gpg}}$ & \small 47707 (2014-01-12) \\ \hline
 \end{tabular}
 \end{centering}
 \caption{\texttt{dename} directory schema}
@@ -394,7 +394,7 @@ are handled.
 
 However, a malicious server could observe the announcements other
 servers make and deliberately introduce requests that conflict with a
-particular user's requests. To prevent this, the requests are hashed
+particular user's requests. To prevent this, a blinded protocol is required: the requests are hashed
 before they are broadcast using the verified broadcast protocol, and
 actual requests are only revealed after every server has announced the
 hash of their proposed changes. Therefore, all changes a server proposes
@@ -480,8 +480,8 @@ together with the server-provided hash stored in the sibling of the
 leaf, resulting in the hash of their parent. This is repeated
 recursively, hashing in the rest of the siblings all the way up to the
 root. If the resulting root hash matches, the client knows the name
-indeed maps to the given profile in the dictionary with the known root
-hash. As all servers vouched for the whole dictionary and we are
+indeed maps to the given profile in the directory with the known root
+hash. As all servers vouched for the whole directory and we are
 assuming that at least one of them is honest, the profile must have been
 registered adhering to the requirements of this system.
 
@@ -499,8 +499,8 @@ Name absence proofs
 
 If a requested name is not in the tree, the server can prove its absence
 by returning the name-identity pairs right before and right after the
-missing name, as defined by the lexicographical order of the dictionary
-keys, along with the associated Merkle hash paths. The client has to
+missing name, as defined by the lexicographical order of the hashes of
+the names, along with the associated Merkle hash paths. The client has to
 verify that both hash paths result give the correct root hash and that
 there are indeed no nodes in between: up to their common ancestor, the
 former only has left siblings and the latter only has right siblings.
@@ -617,7 +617,7 @@ would have no way of determining whether a name has been already
 registered or not. Instead, the core servers will supply the verifiers
 with Merkle tree proofs about the relevant directory state in addition
 to the requested changes. Specifically, each request to transfer a name
-will be annotated with the old profile, its Merkle path and all siblings
+will be annotated with the old profile (or an absence proof if there is none), its Merkle path and all siblings
 used to calculate the hashes for the new Merkle path. The verifier will
 then use the lookup procedure to verify the old mapping and calculate
 the new root hash using the server-provided values instead of storing a
@@ -644,7 +644,7 @@ core server.
 Implementation
 ==============
 
-\label{implementation} We implemented a prototype `dename` server and
+We implemented a prototype `dename` server and
 the client libraries in less than 4000 lines of `go` using `postgresql`
 for storage. The current implementation is a compromise between
 performance and understandability. For example, independent tasks are
@@ -657,7 +657,7 @@ possible and has shown better performance. Our implementation also
 detects and reports various kinds of deviations from the specified
 protocol by other servers, even if ignoring them would be completely
 harmless -- this is intended to assist with debugging and validation of
-possible other implementations.
+potential alternative implementations.
 
 The consensus protocol
 ---------------------
@@ -771,7 +771,7 @@ to the software about the user they wish to communicate with is the
 recipient's hand-picked username. All security-specific details can be
 handled behind the scenes. This model is even simpler than Pond's and
 OTR's, and is likely to be already familiar to a large fraction of the
-users, for example from Email or Twitter.
+users, for example from email or Twitter.
 
 Modifying Pond to
 work with `dename` required changing 50 lines of logic code and 200
