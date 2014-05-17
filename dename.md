@@ -25,33 +25,82 @@ signature management (OpenPGP) and asynchronous messaging (Pond).
 Introduction
 ============
 
-Many cryptographic protocols assume that either all participants know
-each other's public keys, or that there exists a trustworthy directory
-that can be used to look up these public keys. The directory system
-itself often ends up being a weak point of the overall system's
-security. For example, compromising any one certificate authority of an
-attacker's choice breaks anything that relies on
-certificate-authority-based public key infrastructure[@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo]; a breach
-of the Kerberos domain controller would result in a total compromise of
-the security domain. For this reason, security-critical applications try
-to work around the need for a directory service; for example, OpenSSH,
-OpenPGP, OTR and Pond have users manually communicate the critical bits
-of authenticating information to each other. This approach is tedious
-and prone to human error, especially if the users are not online at the
-same time[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP]. While
-better ways to maintain a directory of users' public keys exist (for
+A critical aspect of most cryptographic systems is the association of
+users' public keys to application-level user names, and many systems
+rely on a trusted directory service that associates public keys with
+user identities.  For example, web browsers rely on a set of certificate
+authorities to sign X.509 certificates that bind a web site's hostname to
+that web site's public key, and allow users to know what web site they are
+visiting.  An important benefit of such a design lies in its simplicity
+for application developers and end users.  The directory service takes
+care of mapping keys to names; the application can assume the existence
+of a function to lookup the key for a given name, or verify a name-to-key
+mapping, as in X.509 certificates; and users can likewise assume a perfect
+oracle that associates appropriate keys with user-visible identities.
+
+Unfortunately, most directory-based systems, such as the X.509 certificate
+infrastructure used on the web, suffer from several problems, as follows.
+
+First, compromises of trusted directory servers, such as X.509
+certificate authorities, enable an adversary to completely break
+the assumptions that applications and end users about name-to-key
+mappings [@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo].
+For instance, recent compromises of the DigiNotar and Comodo certificate
+authorities enabled adversaries to impersonate well-known web sites
+such as Google.  As the directory service grows, adding more servers is
+likely to decrease overall security, since it suffices for an adversary to
+compromise any one of the servers in order to break the system's security.
+
+Second, most directory-based systems are based on the premise that the
+directory service will verify whether a user really owns a particular
+name (such as a domain name, a person's full name, or an email address).
+This is appealing because it associates public keys with existing
+real-world identities.  Unfortunately, it is exceedingly difficult to
+formalize what it means for a user to own a non-cryptographic name, or to
+audit whether a directory service properly verified the ownership of any
+given name.  Not surprisingly, this has led to high-profile mistakes,
+such as Verisign signing certificates containing Microsoft's name for
+a party that fradulently claimed to be Microsoft.
+
+Third, clients must be able to obtain and verify name-to-key mappings
+from the directory service.  Most directory services rely on long-lived
+certificates issued to name owners to address this problem, which makes
+it difficult for a client to determine if a name-to-key mapping is still
+valid, and makes it difficult for a name owner to revoke a mapping in a
+timely manner.  As a result, even if a name owner knows that the mapping
+is no longer valid (e.g., because the key has been compromised), clients
+may still accept the old mapping and thus the old key.
+
+One workaround for these problems, used by many security-critical
+systems, is to avoid the assumption of a single directory service,
+and instead ask for help from the user.  For example, OpenSSH, OpenPGP,
+OTR, and Pond all require users to manually communicate critical bits
+of authenticating information to each other.  While this improves
+security for expert users, it is unfortunately tedious and error-prone,
+can be difficult to use if the users are not online at the same time
+[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP], and can in some
+cases provide weaker security guarantees than a directory-based design.
+
+<!--
+TO RELATED WORK:
+
+While better ways to maintain a directory of users' public keys exist (for
 example [@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin),
 the security guarantee they provide is still much weaker than what is
 achieved through careful manual key exchange.
+-->
 
-Any system that provides a name to profile lookup service must overcome
-two important challenges: First, there has to be some protocol for
-maintaining a correct copy of the directory. In a naive single-server
-protocol this might be as simple as changing a file on the disk. Second,
-a client must be able to retrieve the profile for a specified name and
-be assured that the response is correct. Additionally, while not
-strictly necessary, an auditing mechanism can help to build confidence
-in a system.
+This paper presents `dename`, a public key distribution system that
+addresses the above challenges and provides a practical design that
+integrates easily into existing systems such as OpenSSH, GPG, and Pond,
+without requiring any additional user effort for key management.
+The design of `dename` is purposely simple, and `dename` builds on
+several key ideas:
+
+First, instead of allowing any server to assign a key to a name,
+XXX
+
+
 
 In essence, `dename` works by having a group of predetermined but
 independently administered servers maintain identical copies of the user
@@ -69,11 +118,14 @@ define strict rules to which all modifications of the name-profile
 mapping have to adhere to. Third parties can verify that the core
 servers enforce these rules.
 
+<!-- What about revocation in dename?  -->
+
 We implemented a prototype of the system, showed that it can be use on
 global scale and measured its performance. We integrated `dename` with
 three different applications that previously relied on manual key
 distribution and informally evaluated the usability impact of the
 modifications.
+
 
 Related work
 ============
