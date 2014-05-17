@@ -741,6 +741,25 @@ Evaluation
 ==========
 
 \label{evaluation}
+To see whether `dename` is suitable for large-scale adoption, we
+evaluated the two aspects of `dename` which are the most different from
+the present standards. First, it is important to check that the name
+assignment policy is not overly limiting and can be used in real-world
+applications To show that it is practical to replace manual public key
+distribution with `dename`, we integrated a `dename` client with the
+Pond asynchronous messaging system, OpenSSH and OpenPGP and compared the
+resulting user experience to the original application. Second, it is
+important that the servers are as independent as possible, so
+a geographically distributed `dename` setup must be able to handle
+we reasonable throughput of change requests. As profile lookups can be
+performed against caches in addition to the core servers lookup
+performance is not critical. We also expect it to be much faster --
+a name's profile and the Merkle tree proof can be assembled during
+a single b-tree traversal.
+
+Applicability
+-------------
+
 A usability evaluation of PGP[@Johnny1999] pointed out the need for
 a conceptual model of security simpler and smaller than manual handling
 of public keys as used in PGP. Pond[@Pond] and OTR do not require users
@@ -760,13 +779,10 @@ handled behind the scenes. This model is even simpler than Pond's and
 OTR's, and is likely to be already familiar to a large fraction of the
 users, for example from Email or Twitter.
 
-To show that it is practical to replace manual public key distribution
-with `dename`, we integrated a `dename` client with the Pond
-asynchronous messaging system, OpenSSH and OpenPGP. Modifying Pond to
+Modifying Pond to
 work with `dename` required changing 50 lines of logic code and 200
 lines of user interface declarations. the two `ssh` wrapper scripts are
 2 lines each and the `gpg` wrapper is 15 lines.
-
 Pond requires each pair of users to establish a shared secret before
 they can use Pond to communicate with each other. The Pond User Guide
 gives a detailed explanation of several acceptable ways that may be used
@@ -808,22 +824,12 @@ other party.
 Performance
 -----------
 
-A laptop with a `Core 2 Duo L9400` cpu and a `Corsair Force GT` SSD
-drive can handle 100 profile changes per second while acting as two
-servers simultaneously. This number may not seem high when compared to
-non-cryptographic databases, but 250 million profile changes per month
-is unlikely to become a limiting factor in any realistic deployment
-scenario.
-
-To achieve optimal security, it is important that the servers are as
-independent as possible: operated by different parties, running
-different software and distributed geographically. To see how the last
-objective impacts performance, we ran 7 `AWS i2.2xlarge` in 7 different
-datacenters on 4 continents and measured the profile modification
-throughput. As expected, performing multiple changes during the same
-consensus round keeps the consensus protocol out of the critical path
-and adding more servers results in minimal performance degradation.
-The results can be seen in Figure \ref{awsResults}.
+We ran our `dename` prototype on 7 AWS `i2.2xlarge` instances in
+7 different datacenters on 4 continents and measured the profile
+modification throughput. As expected, performing multiple changes during
+the same consensus round keeps the consensus protocol out of the
+critical path and adding more servers results in minimal performance
+degradation. The results can be seen in Figure \ref{awsResults}.
 
 \begin{figure}[htb]
 FAKE DATA\newline
@@ -832,6 +838,10 @@ FAKE DATA\newline
 \label{awsResults}
 \end{figure}
 
+150 writes per second may not seem high when compared to
+non-cryptographic databases, but 400 million profile changes per month
+is unlikely to become a limiting factor in any realistic deployment
+scenario.
 
 Limitations and Future Work
 ===========================
