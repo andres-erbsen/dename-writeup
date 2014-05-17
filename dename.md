@@ -82,18 +82,8 @@ and instead ask for help from the user.  For example, OpenSSH, OpenPGP,
 OTR, and Pond all require users to manually communicate critical bits
 of authenticating information to each other.  While this improves
 security for expert users, it is unfortunately tedious and error-prone,
-can be difficult to use if the users are not online at the same time
-[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP], and can in some
-cases provide weaker security guarantees than a directory-based design.
-
-<!--
-TO RELATED WORK:
-
-While better ways to maintain a directory of users' public keys exist (for
-example [@SwartzSquareZoooko], [@CertificateTransparancy] and NameCoin),
-the security guarantee they provide is still much weaker than what is
-achieved through careful manual key exchange.
--->
+and can be difficult to use if the users are not online at the same time
+[@Johnny1999][@Johnny2008][@arsTechnicaGGreenwaldPGP].
 
 This paper presents `dename`, a public key distribution system that
 addresses the above challenges and provides a practical design that
