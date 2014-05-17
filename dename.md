@@ -167,16 +167,18 @@ as DNS and Keybase, are subject to similar issues. Secure *lookup*
 protocols such as DNSSEC or DNSCurve do not protect against authority
 compromise either.
 
+In **DANE**[@daneRFC], the
+manager of a DNS domain assigns public keys to its subdomains. This
+limits the effects of the compromise of an assigner to its subtree, but
+the root is still a central point of failure.
+
 **Certificate Transparency**[@CertificateTransparancy] provides a means to
 detect certificate authority misbehavior. Its creators argue that the
 threat of public scrutiny would deter intentional violations of the
 certification practices and provide additional motivation for the
 certificate authorities to keep their systems secure. However, the effectiveness
 of these indirect measures has not been proven, so they currently
-insufficient to give a strong security guarantee. In DANE[@daneRFC], the
-manager of a DNS domain assigns public keys to its subdomains. This
-limits the effects of the compromise of an assigner to its subtree, but
-the root is still a central point of failure.
+insufficient to give a strong security guarantee. 
 
 **Availability-based:**
 With Convergence[@convergence] or Perspectives[@perspectives], public
@@ -506,7 +508,7 @@ former only has left siblings and the latter only has right siblings.
 Freshness
 =========
 
-\label{freshness} The protocol as described guarantees that if a client
+The protocol as described guarantees that if a client
 looks up a profile, the mapping between a name and this profile must
 have been approved by all servers at some point in time. However,
 nothing so far prevents this mapping from being superseded by a later
@@ -557,7 +559,6 @@ and requiring a unanimous answer.
 Verifiers
 =========
 
-\label{verifiers}
 We view having a fixed set of servers as a necessary evil: it is
 inherently a central point of compromise, but the only alternative we
 know is having the evolution of the directory state determined by
