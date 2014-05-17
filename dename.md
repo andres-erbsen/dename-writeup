@@ -9,7 +9,7 @@ This paper presents `dename`, a system for public key distribution that
 provides strong security guarantees in the face of server compromises.
 In the X.509 certificate authority system used by the web, a single
 compromised certificate authority server allows an adversary to break
-all security guarantees.  In contrast, `dename` guarantees security as
+all security guarantees.  By contrast, `dename` guarantees security as
 long as just one of the servers remains honest.  To achieve these goals,
 `dename` provides a simple design built around three key ideas:
 (1) Require all servers to reach consensus on the assignment of names
@@ -31,7 +31,7 @@ Introduction
 ============
 
 A critical aspect of most cryptographic systems is the association of
-users' public keys to application-level user names, and many systems
+users' public keys to application-level usernames, and many systems
 rely on a trusted directory service that associates public keys with
 user identities.  For example, web browsers rely on a set of certificate
 authorities to sign X.509 certificates that bind a web site's hostname to
@@ -43,12 +43,12 @@ of a function to lookup the key for a given name, or verify a name-to-key
 mapping, as in X.509 certificates; and users can likewise assume a perfect
 oracle that associates appropriate keys with user-visible identities.
 
-Unfortunately, most directory-based systems, such as the X.509 certificate
+Unfortunately, most directory-based systems, including the X.509 certificate
 infrastructure used on the web, suffer from several problems, as follows.
 
 First, compromises of trusted directory servers, such as X.509
 certificate authorities, enable an adversary to completely break
-the assumptions that applications and end users about name-to-key
+the assumptions that applications and end users have about name-to-key
 mappings [@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo].
 For instance, recent compromises of the DigiNotar and Comodo certificate
 authorities enabled adversaries to impersonate well-known web sites
@@ -120,12 +120,9 @@ to compromise all of the servers responsible for registering names,
 instead of just one server.  `dename` introduces a round-based _blinded
 consensus protocol_ that allows servers to reach consensus on the set
 of registered names without allowing a compromised server to subvert
-new names by introducing its own concurrent registrations.  In order to
-further improve accountability of name registration servers, `dename`
-also makes it possible for arbitrary third-party verifiers to check that
-all registrations have been completed correctly.
+new names by introducing its own concurrent registrations.
 
-Second, `dename` eliminates the notion of a user apriori owning any name.
+Second, `dename` eliminates the notion of a user owning any name a priori.
 Instead, `dename` provides first-come-first-served name registration.
 The key advantage of this design choice lies in the fact that it is
 easy to audit algorithmically: if a name was not previously registered,
@@ -137,7 +134,7 @@ other servers, and even third-party verifiers can make sure that all
 name registration servers did their work correctly.
 
 Third, `dename` servers construct two authenticated data structures:
-a hash-chained log of all name registration operations, and a Merkle
+a signed log of all name registration operations, and a Merkle
 tree summarizing the current state of all registered names.  The tree
 allows clients to efficiently lookup and verify name-to-key mappings,
 and ensures freshness with the help of periodic timestamps.  The log
@@ -164,29 +161,29 @@ Related work
 \label{relatedwork} There are multiple systems that map
 human-meaningful names to security-critical public information such as
 public keys. Subtle differences in the semantics of how the names are
-assigned can have a huge impact on the system's security properties.
+assigned can have a huge impact on a system's security properties.
 
-**Single-assigner**:
-The most widely used way of associating public keys with names is the
-X.509 Public Key Infrastructure. Any one of the globally known and
-trusted set of certificate authorities can handle a certificate signing
-request (usually for a fee) and produce a digitally signed certificate
-stating that a certain public key belongs to the entity bearing the
-specified name. The compromise of any one of the certificate authorities
-can and has lead to an attacker being able to impersonate arbitrary
+**Single-assigner**: The most widely used way of associating public keys
+with names is the X.509 Public Key Infrastructure. Any one of the
+globally known and trusted set of certificate authorities can handle a
+certificate signing request (usually for a fee) and produce a digitally
+signed certificate stating that a certain public key belongs to the
+entity bearing the specified name. The compromise of any one of the
+certificate authorities can and has enabled attackers to impersonate
+arbitrary
 names[@EllisonSchneierPKI][@SchneierVerisignHacked][@MozillaComodo].
-Other systems that permit a single party to change the mapping, for
-example DNS and Keybase, are subject to similar issues. Secure
-*lookup* protocols such as DNSSEC or DNSCurve do not protect against
-authority compromise either.
+Other systems that permit a single party to change the mapping, such
+as DNS and Keybase, are subject to similar issues. Secure *lookup*
+protocols such as DNSSEC or DNSCurve do not protect against authority
+compromise either.
 
-Certificate Transparency[@CertificateTransparancy] provides a means to
-detect certificate authority misbehavior. It has been argued that the
+**Certificate Transparency**[@CertificateTransparancy] provides a means to
+detect certificate authority misbehavior. Its creators argue that the
 threat of public scrutiny would deter intentional violations of the
 certification practices and provide additional motivation for the
-certificate authorities to keep their systems secure. The effectiveness
-of such indirect measures is yet to be determined, and thus currently
-insufficient to state a strong security guarantee. In DANE[@daneRFC], the
+certificate authorities to keep their systems secure. However, the effectiveness
+of these indirect measures has not been proven, so they currently
+insufficient to give a strong security guarantee. In DANE[@daneRFC], the
 manager of a DNS domain assigns public keys to its subdomains. This
 limits the effects of the compromise of an assigner to its subtree, but
 the root is still a central point of failure.
@@ -202,19 +199,6 @@ a potential point of attack; currently unauthenticated DNS is used.
 Furthermore, no consistency guarantees are provided: two honest notaries
 may report a different public key for the same site.
 
-**NameCoin** aims for very similar semantics to `dename` but uses
-a completely different construction. The mapping is determined by the
-longest log of name assignments available; anybody can extend any log,
-but doing so is computationally intensive. If most of the computational
-power is spent on NameCoin is controlled by parties who adhere to the
-protocol, a correct log will be the longest in expectation. As extensive
-computation is required to register a name, the entities who perform
-this computation charge for registration. This provides some incentive
-for good nodes to invest computational power into NameCoin, but there is
-no inherent reason why this would result in the good nodes being
-computationally more powerful than the bad nodes. Either way, this
-competitive use of resources results in high operating costs[@BitcoinElectricity].
-
 **Cross-certification** systems such as Crypto-Book[@CryptoBook] and
 Keybase's account ownership proofs do not even aim to provide better
 security than the social network websites they rely on for user
@@ -222,6 +206,19 @@ authentication. In general, designs that strictly follow the naming
 conventions of an existing non-cryptographic system provide weaker
 security guarantees because the name assignment process is a single
 point of failure.
+
+**NameCoin** aims for very similar semantics to `dename` but uses
+a completely different construction. The mapping is determined by the
+longest log of name assignments available; anybody can extend any log,
+but doing so is computationally intensive. If most of the computational
+power is spent on NameCoin is controlled by parties who adhere to the
+protocol, a correct log will be the longest with high probability. As extensive
+computation is required to register a name, the entities who perform
+this computation charge for registration. This provides an incentive
+for nodes to invest computational power into NameCoin, but there is
+no guarantee that good nodes are
+computationally more powerful than bad nodes. Either way, this
+competitive use of resources results in high operating costs[@BitcoinElectricity].
 
 Overview
 ========
@@ -246,7 +243,7 @@ order of name registration.  For example, instead of first registering
 for an account with an email provider, and then creating a mapping for
 that name, the email provider should first register an appropriate name
 for the user in `dename`, and if that succeeds, create an email account
-under that user name.
+under that username.
 
 The discussion of the operation of this system is organized as follows:
 Section \ref{relatedwork} contains a short review of several systems
