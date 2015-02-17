@@ -127,10 +127,9 @@ choosing the minimum of all possible "current" times broadcast by the leaders.
 Semantics
 =========
 
-The semantics of what kind of changes are allowed are in some sense a detail,
-but they are important. For example, if one user were able to edit another's
-profile without their consent, the directory would be of little use. Our
-implementation sets the following constraints:
+The consensus algorithm above could hypothetically be used for any system
+maintaining a public state according to particular rules. For dename, we've
+chosen a set of rules that guarantee semantics appropriate for a naming system:
 
 1.  All proposed profiles must contain a public key that can be used to
     verify digital signatures.
