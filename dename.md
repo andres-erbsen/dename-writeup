@@ -36,6 +36,7 @@ keys of the core servers and any verifiers whose confirmation they require out
 of band (for example, together with the software).  To register a name or modify
 a profile associated with an existing name, a client can contact a leader of its
 choice, but lookups can be served by any server with an up-to-date copy of the
+<!-- the "but" sentence sounds awkward to me -->
 state. The servers prevent clients from modifying each others' profiles by
 requiring the change request to be digitally signed with a key designated in
 that profile.
@@ -45,13 +46,14 @@ A `dename` server exposes the following API:
 * `modify(name, newProfile, newSignature, oldSignature)`:  Make the name point
   to the new profile. `newSignature` is a signature on the request with the key
 contained in the new profile.  If an old profile exists, `oldSignature` is a
-signature on the request with the old key.
-* `getRoot()`:  Return the hash of the current directory state signed and
+signature on the request with the old key. This operation is provided by leader
+servers only.
   timestamped by each server known to the server contacted by the client.
-* `lookup(name) -> (profile, proof)`:  Return the profile that the name points
-  to, along with a proof that the name-profile pair is present in the directory
-and up to date. A typical client would call `lookup` and `getRoot` together
-atomically, and check the signatures, timestamps, and the proof.
+* `lookup(name) -> (profile, proof, signatures, timestamps)`: The contacted
+  server says that `name` maps to `profile`. To justify this claim, the server
+  demonstrates that other servers it knows have recently signed a directory `d`
+  (referenced using a hash), and returns a Merkle `proof` that `name` indeed
+  maps to `profile` in `d`.
 
 We envision that `dename`'s first-come-first-served registration policy can be
 easily incorporated into existing application designs, by simply changing the
@@ -66,28 +68,27 @@ Maintaining consensus
 =====================
 
 \label{consensusSection} Changes to the user directory happen in discrete
-rounds: each server proposes a set of changes and all servers apply them in
+rounds: each leader proposes a set of changes and all servers apply them in
 lockstep. We use a verified broadcast primitive (described below) to ensure that
 all servers receive the same set of requested changes, and we handle the changes
 in a deterministic order. Additionally, we describe some malicious behavior that
-servers could engage in which would not directly violate the security claim, but
+leaders could engage in which would not directly violate the security claim, but
 is nevertheless undesirable, and _blind_ the protocol to counteract that
 behavior.
 
-The physical analogy of verified broadcast is a public announcement:
-everybody learns what the announcer has to say and can be sure that
-others heard the same thing. In computer networks allowing only
-point-to-point communication, we can emulate this using a two-phase
-protocol: first the announcer broadcasts the message, then every server
-broadcasts an acknowledgment of what they received from the announcer.
-In `dename`, all $n$ servers announce exactly one set of changes
-$\Delta_1 \ldots \Delta_n$ during each round, so we can group each
-server's acknowledgments of all messages it received into one message.
-Furthermore, as only the equality of the sets of announcements received
-by different servers is important, rather than the actual contents, we can sign
-a cryptographic hash $h(\Delta_1 \parallel \ldots \parallel \Delta_n)$ of all
-received announcements in an acknowledgment instead of the announcements
-themselves. The verified broadcast protocol can be seen in Figure \ref{VerifiedBcast}.
+The physical analogy of verified broadcast is a public announcement: everybody
+learns what the announcer has to say and can be sure that others heard the same
+thing. In computer networks allowing only point-to-point communication, we can
+emulate this using a two-phase protocol: first the announcer broadcasts the
+message, then every other leader broadcasts an acknowledgment of what they
+received from the announcer.  In `dename`, all $n$ leaders announce exactly one
+set of changes $\Delta_i$ during each round, so we can group each leader's
+acknowledgments of all messages it received into one message.  Furthermore, as
+only the equality of the sets of announcements received by different leaders is
+important, rather than the actual contents, we can sign a cryptographic hash
+$h(\Delta_1 \parallel \ldots \parallel \Delta_n)$ of all received announcements
+in an acknowledgment instead of the announcements themselves. The verified
+broadcast protocol can be seen in Figure \ref{VerifiedBcast}.
 
 \begin{figure}[htb]
 \begin{msc}
@@ -112,12 +113,16 @@ msc {
 \end{figure}
 
 In the description above, all messages are assumed to be authenticated.
-If one server were able to impersonate another, it could fool other
+If one leader were able to impersonate another, it could fool other
 servers into thinking that a different set of changes has been
 announced. We use digital signatures for authentication because unlike
 faster symmetric authentication mechanisms, signatures can be used to
 construct an audit trail in case one of the servers sends out different
 announcements or acknowledgments during the same round.
+
+As it is not safe to assume that the clocks of different servers are perfectly
+synchronized, a mock "current time" value is determined for each round by
+choosing the minimum of all possible "current" times broadcast by the leaders.
 
 Semantics
 =========
