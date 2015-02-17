@@ -161,4 +161,61 @@ Table \ref{schematable} shows the fields stored by `dename` with example data. <
 \label{schematable}
 \end{table}
 
+Because mappings expire, users have to periodically confirm their claim to a particular name by
+requesting a null change to the associated profile. When a mapping does expire, it is
+important that clients start rejecting it soon to prevent the old owner from
+impersonating the next person to claim the name; thus, dename makes it possible to verify
+the freshness of a mapping (Section \ref{freshness}). An alternative design could
+disallow expiration altogether, but the resulting proliferation of old names whose
+private keys were lost would seriously hamper the usability of the system.
 
+The described rules of changing the directory are sensitive to the order
+in which changes are processed: if two servers propose two valid
+requests to modify the same name in different ways, it is crucial to
+ensure that all servers choose to apply them in the same order because
+applying one of them may make the other invalid. We use a standard
+commit-and-combine protocol <!-- TODO: cite one us of this! -->
+to establish shared randomness
+between servers and use it to pick a random permutation of the list of
+servers that determines the order in which the requests they introduced
+are handled.
+
+However, a malicious server could observe the announcements other
+servers make and deliberately introduce requests that conflict with a
+particular user's requests. To prevent this, a blinded protocol is required: the requests are hashed
+before they are broadcast using the verified broadcast protocol, and
+actual requests are only revealed after every server has announced the
+hash of their proposed changes. Therefore, all changes a server proposes
+must be independent of the ones proposed by other servers because it
+only gets to observe the other proposals after broadcasting its own. To
+spread out network load, the current implementation actually encrypts
+the broadcasted requests and reveals them by revealing the  encryption key. The final
+protocol is displayed in Figure \ref{consensusProtocol}.
+
+\begin{figure}[htb]
+\begin{msc}
+msc {
+  hscale = "0.8",
+  arcgradient = "13";
+
+  a,b,c;
+
+  a=>* [ label = "sigA(h(rqsA)), enc(rqsA)" ] ;
+  b=>* [ label = "sigB(h(rqsB)), enc(rqsB)" ] ;
+  c=>* [ label = "sigC(h(rqsC)), enc(rqsC)" ] ;
+  b=>* [ label = "sigB(h(hA, hB, hC))" ] ;
+  a=>* [ label = "sigA(h(hA, hB, hC))" ] ;
+  c=>* [ label = "sigC(h(hA, hB, hC))" ] ;
+  ---  [ label = "Verify that hX is unique forall X." ];
+  b=>* [ label = "keyB" ] ;
+  a=>* [ label = "keyA" ] ;
+  c=>* [ label = "keyC" ] ;
+  ---  [ label = "Decrypt rqsX. Verify hX = h(rqsX). Process rqsX." ];
+  b=>* [ label = "sigB(new state)" ] ;
+  a=>* [ label = "sigA(new state)" ] ;
+  c=>* [ label = "sigC(new state)" ] ;
+}
+\end{msc}
+\caption{\texttt{dename} consensus protocol}
+\label{consensusProtocol}
+\end{figure}
